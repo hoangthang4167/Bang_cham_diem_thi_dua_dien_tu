@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần mềm chấm điểm thi đua</title>
+    <link rel="icon" type="image/png" href="logo_f9.png">
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+    <section class="auth-screen" id="authView">
+        <div class="auth-card">
+            <aside class="auth-brand">
+                <div class="auth-emblem"><img src="logo_f9.png" alt="Biểu trưng Sư đoàn 9"></div>
+                <div class="auth-kicker">SƯ ĐOÀN BB9 · ĐOÀN BÌNH GIÃ ANH HÙNG</div>
+                <strong>HỆ THỐNG CHẤM ĐIỂM THI ĐUA ĐIỆN TỬ</strong>
+                <span>Quản lý điểm số · Khen thưởng · Báo cáo</span>
+            </aside>
+            <div class="auth-form-panel">
+                <h1 id="authTitle">Đăng nhập hệ thống</h1>
+                <p id="authSubtitle">Đăng nhập để xem và chỉnh sửa dữ liệu thi đua.</p>
+                <form id="authForm" autocomplete="on">
+                    <label class="block">Tên đăng nhập<input id="authUsername" name="username" autocomplete="username"
+                            required="" maxlength="48" placeholder="Tên đăng nhập"></label>
+                    <label class="block">Mật khẩu<input type="password" id="authPassword" name="password"
+                            autocomplete="current-password" required="" placeholder="Nhập mật khẩu"></label>
+                    <label class="block" id="authConfirmGroup" hidden="">Nhập lại mật khẩu<input type="password"
+                            id="authConfirm" name="confirm_password" autocomplete="new-password"
+                            placeholder="Nhập lại mật khẩu"></label>
+                    <p class="auth-error" id="authError" role="alert" hidden=""></p>
+                    <button type="submit" class="btn btn-primary auth-submit" id="authSubmit">Đăng nhập</button>
+                </form>
+                <p class="auth-note" id="authNote">Không cần Internet hoặc mạng LAN. Dữ liệu được lưu trên máy tính này.
+                </p>
+            </div>
+        </div>
+    </section>
+    <div class="layout" id="mainApp" hidden="">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-shield"><img src="logo_f9.png" alt="Logo SƯ ĐOÀN BB9"></div>
+                <div>
+                    <div class="brand-overline">SƯ ĐOÀN BỘ BINH 9</div>
+                    <div class="brand-version">TRUNG ĐOÀN BỘ BINH 1</div>
+                    <div class="brand-title">CÔNG TÁC<br>THI ĐUA - KHEN THƯỞNG</div>
+                </div>
+            </div>
+            <div class="side-label">QUẢN LÝ THI ĐUA</div>
+            <nav id="navigation">
+                <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌂</span><span>Tổng
+                        quan</span></button>
+                <button class="nav-item" data-view="entry"><span class="nav-icon">✎</span><span>Chấm điểm thi
+                        đua</span></button>
+                <button class="nav-item" data-view="analysis"><span class="nav-icon">▤</span><span>So sánh tuần
+                        ·
+                        tháng</span></button>
+                <button class="nav-item" data-view="remarks"><span class="nav-icon">✦</span><span>Gợi ý nhận xét
+                        /
+                        AI</span></button>
+                <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Cài đặt hệ
+                        thống</span></button>
+            </nav>
+            <div class="sidebar-bottom"><span class="offline-dot"></span> CHẠY CỤC BỘ · GEMINI TÙY CHỌN
+                <p>Dữ liệu chấm điểm lưu trên máy. Chỉ gửi nội dung tới Gemini khi người dùng bật chế độ Online
+                    và xác nhận.
+                </p>
+                <div class="author-line">Tác giả: <strong>3/ Phan Đình Tuấn</strong><br>Chính trị viên/cBB9
+                </div>
+            </div>
+        </aside>
+        <main class="main">
+            <header class="topbar">
+                <div class="crumb">CÔNG TÁC THI ĐUA, KHEN THƯỞNG <span class="crumb-sep">/</span> <span
+                        id="crumb-current">Tổng quan thi đua</span></div>
+                <div class="topbar-actions"><span class="status-chip"><span class="offline-dot"></span> Offline + Gemini
+                        tùy
+                        chọn</span><span class="topdate" id="todayLabel">Thứ Bảy, 21/11/2026</span><span
+                        class="signed-user" id="currentUser">Tài khoản: admin</span><button
+                        class="btn btn-outline logout-btn" id="logoutBtn" type="button">Đăng xuất</button></div>
+            </header>
+            <div class="content">
+                <div class="app-hero">
+                    <div class="hero-emblem"><img src="logo_f9.png" alt="Logo tròn Sư đoàn BB9"></div>
+                    <div class="hero-lines">
+                        <span>SƯ ĐOÀN BB9</span>
+                        <span>TRUNG ĐOÀN BB1 · ĐOÀN BÌNH GIÃ ANH HÙNG</span>
+                        <strong>HỆ THỐNG CHẤM ĐIỂM THI ĐUA ĐIỆN TỬ</strong>
+                        <em id="heroCampaign">Thượng úy Phan Đình Tuấn - Chính trị viên Đại đội 9</em>
+                    </div>
+                    <div class="hero-star" aria-hidden="true">★</div>
+                </div>
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow" id="page-eyebrow">BẢNG ĐIỀU KHIỂN</div>
+                        <h1 id="page-title">Tổng quan thi đua</h1>
+                        <p id="page-subtitle">Theo dõi điểm số, đánh giá diễn biến và tổng hợp kết quả các đơn vị.</p>
+                    </div>
+                    <div class="global-controls"><label for="globalWeek">Tuần bắt đầu</label><input type="date"
+                            id="globalWeek" aria-label="Ngày bắt đầu tuần"><button class="btn btn-outline"
+                            id="refreshBtn">Làm mới</button></div>
+                </div>
+                <div class="notice info" id="notice" role="status" hidden=""></div>
+                <section class="view" id="view-dashboard">
+                    <div class="report-banner" id="reportBanner">
+                        <div><span class="report-banner-overline">KỲ THI ĐUA ĐANG THEO DÕI</span><strong
+                                id="reportBannerTitle">TỔNG HỢP</strong><small id="reportBannerRange">ĐẠI ĐỘI 9 · 16/11
+                                –
+                                22/11/2026</small></div><button class="btn btn-outline" type="button"
+                            id="editReportBtn">✎
+                            Sửa đơn vị / kỳ báo cáo</button>
+                    </div>
+                    <div class="kpi-grid" id="kpis">
+                        <div class="kpi">
+                            <div class="kpi-top">Điểm trung bình các đơn vị</div>
+                            <div class="kpi-value">—</div>
+                            <div class="kpi-sub">Tạm tính theo dữ liệu đã nhập</div><span class="kpi-icon">◇</span>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-top">Đơn vị dẫn đầu</div>
+                            <div class="kpi-value">—</div>
+                            <div class="kpi-sub">Chưa có điểm</div><span class="kpi-icon">★</span>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-top">Số lượt đã nhập</div>
+                            <div class="kpi-value">0/21</div>
+                            <div class="kpi-sub">Còn 21 lượt chưa nhập</div><span class="kpi-icon">▦</span>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-top">Điểm thưởng / điểm trừ</div>
+                            <div class="kpi-value">0 / 0</div>
+                            <div class="kpi-sub">Tổng cộng trong tuần</div><span class="kpi-icon">⊕</span>
+                        </div>
+                    </div>
+                    <div class="content-grid">
+                        <article class="panel wide">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Diễn biến điểm thi đua theo ngày</h2>
+                                    <p>Điểm ngày đã bao gồm điểm cộng, điểm trừ</p>
+                                </div><span class="mini-tag" id="dashRange">16/11 – 22/11/2026</span>
+                            </div>
+                            <div id="dayChart" class="chart">
+                                <div class="chart-empty">Chưa có dữ liệu để vẽ biểu đồ.<br>Điểm sẽ tự xuất hiện sau khi
+                                    nhập.</div>
+                            </div>
+                            <div id="chartLegend" class="legend"></div>
+                        </article>
+                        <article class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Xếp hạng tuần</h2>
+                                    <p>Tự động tính từ dữ liệu đã nhập</p>
+                                </div>
+                            </div>
+                            <div id="ranks" class="ranklist">
+                                <div class="chart-empty">Chưa có điểm thi đua trong tuần.<br>Vào “Nhập điểm theo ngày”
+                                    để
+                                    bắt đầu.</div>
+                            </div>
+                            <div class="hint">Kết quả tạm tính nếu chưa nhập đủ 7 ngày cho tất cả đơn vị.</div>
+                        </article>
+                    </div>
+                    <div class="content-grid bottom-grid">
+                        <article class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Phân tích tự động</h2>
+                                    <p>Đối chiếu số liệu, không tự suy diễn sự việc</p>
+                                </div><span class="mini-tag accent">QUY TẮC</span>
+                            </div>
+                            <div id="quickAnalysis" class="insights">
+                                <div class="insight"><strong>1.</strong> Chưa đủ dữ liệu để phân tích. Có thể nạp tuần
+                                    mẫu ở
+                                    Cài đặt để dùng thử.</div>
+                            </div>
+                        </article>
+                        <article class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Thao tác nhanh</h2>
+                                    <p>Bắt đầu làm việc với tuần được chọn</p>
+                                </div>
+                            </div>
+                            <div class="quick-actions"><button class="action-card" data-go="entry"><span>①</span>
+                                    <div><b>Nhập điểm hằng ngày</b><small>Ghi điểm và diễn biến thực tế</small></div>
+                                    <span class="arrow">›</span>
+                                </button><button class="action-card" data-go="remarks"><span>②</span>
+                                    <div><b>Gợi ý nhận xét / AI</b><small>Chọn từ khóa ưu, khuyết điểm</small></div>
+                                    <span class="arrow">›</span>
+                                </button><button class="action-card" id="wordShortcut"><span>③</span>
+                                    <div><b>Xuất báo cáo Word</b><small>Bảng điểm và nhận xét tuần</small></div><span
+                                        class="arrow">›</span>
+                                </button></div>
+                        </article>
+                    </div>
+                </section>
+                <section class="view" id="view-entry" hidden="">
+                    <div class="content-grid entry-grid">
+                        <article class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Nhập / chỉnh sửa điểm ngày</h2>
+                                    <p>Chọn tổng điểm hoặc chấm theo MT1, MT2… MT5, MT6 theo phong trào</p>
+                                </div>
+                            </div>
+                            <form id="entryForm" class="entry-form">
+                                <div class="form-row two"><label>Ngày chấm<input type="date" id="scoreDay"
+                                            required=""></label><label>Đơn vị<select id="scoreUnit" required="">
+                                            <option value="1">Trung đội 1</option>
+                                            <option value="2">Trung đội 2</option>
+                                            <option value="3">Đại đội bộ</option>
+                                        </select></label></div>
+                                <div class="field-label">Cách nhập điểm</div>
+                                <div class="toggle-row"><label><input name="scoreMode" type="radio" value="total"
+                                            checked=""> Chỉ nhập tổng điểm</label><label><input name="scoreMode"
+                                            type="radio" value="components"> Nhập theo các MT đang bật</label></div>
+                                <div id="totalFields"><label class="block">Điểm gốc (chưa cộng/trừ)<input type="number"
+                                            id="scoreBase" min="0" max="100000" step="0.01"
+                                            placeholder="Ví dụ: 890"></label></div>
+                                <div id="componentFields" hidden="">
+                                    <div class="criterion-input-grid" id="criteriaInputs"><label>MT1
+                                            <small></small><input data-mt-code="MT1" type="number" min="0" max="2000"
+                                                step="0.01" placeholder="—"></label><label>MT2 <small></small><input
+                                                data-mt-code="MT2" type="number" min="0" max="2000" step="0.01"
+                                                placeholder="—"></label><label>MT3 <small></small><input
+                                                data-mt-code="MT3" type="number" min="0" max="2000" step="0.01"
+                                                placeholder="—"></label><label>MT4 <small></small><input
+                                                data-mt-code="MT4" type="number" min="0" max="2000" step="0.01"
+                                                placeholder="—"></label></div>
+                                    <p class="calc-preview" id="calculatedBase">Nhập điểm cho các MT áp dụng; MT không
+                                        áp
+                                        dụng có thể để trống.</p>
+                                    <p class="fineprint" id="criteriaArchiveNotice" hidden=""></p>
+                                </div>
+                                <div class="form-row two"><label>Điểm cộng<input type="number" id="scoreBonus" min="0"
+                                            max="2000" step="0.01" value="0"></label><label>Điểm trừ<input type="number"
+                                            id="scorePenalty" min="0" max="2000" step="0.01" value="0"></label></div>
+                                <label class="block">Ghi chú tình hình thực tế <small>(giúp AI viết nhận xét có căn
+                                        cứ)</small><textarea id="scoreNote" rows="3"
+                                        placeholder="[Ưu] Duy trì tốt nền nếp; [Khuyết] Tác phong một bộ phận còn chậm..."></textarea></label>
+                                <div class="form-actions"><button type="submit" class="btn btn-primary">Lưu
+                                        điểm</button><button type="button" class="btn btn-outline" id="clearEntry">Làm
+                                        trống</button><button type="button" class="btn btn-danger-outline"
+                                        id="deleteScore">Xóa điểm ngày</button></div>
+                            </form>
+                        </article>
+                        <article class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Bảng chấm điểm theo mẫu</h2>
+                                    <p>Hiện điểm từng MT; nhấn một hàng để sửa</p>
+                                </div><span class="mini-tag" id="entryProgress">0/21 lượt</span>
+                            </div>
+                            <div class="table-wrap ledger-scroll">
+                                <table class="data-table compact ledger-table">
+                                    <thead>
+                                        <tr id="entryCols">
+                                            <th>Thứ / Ngày</th>
+                                            <th>Đơn vị</th>
+                                            <th class="right" title="MT1">MT1</th>
+                                            <th class="right" title="MT2">MT2</th>
+                                            <th class="right" title="MT3">MT3</th>
+                                            <th class="right" title="MT4">MT4</th>
+                                            <th class="right">Cộng</th>
+                                            <th class="right">Trừ</th>
+                                            <th class="right">Tổng điểm</th>
+                                            <th>Hạng ngày</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="entryRows">
+                                        <tr class="clickable day-start" data-day="2026-11-16" data-unit="1">
+                                            <td class="date-cell">Thứ 2<br><b>16/11</b></td>
+                                            <td class="unit-cell">Trung đội 1</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-16" data-unit="2">
+                                            <td class="date-cell">Thứ 2<br><b>16/11</b></td>
+                                            <td class="unit-cell">Trung đội 2</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-16" data-unit="3">
+                                            <td class="date-cell">Thứ 2<br><b>16/11</b></td>
+                                            <td class="unit-cell">Đại đội bộ</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable day-start" data-day="2026-11-17" data-unit="1">
+                                            <td class="date-cell">Thứ 3<br><b>17/11</b></td>
+                                            <td class="unit-cell">Trung đội 1</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-17" data-unit="2">
+                                            <td class="date-cell">Thứ 3<br><b>17/11</b></td>
+                                            <td class="unit-cell">Trung đội 2</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-17" data-unit="3">
+                                            <td class="date-cell">Thứ 3<br><b>17/11</b></td>
+                                            <td class="unit-cell">Đại đội bộ</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable day-start" data-day="2026-11-18" data-unit="1">
+                                            <td class="date-cell">Thứ 4<br><b>18/11</b></td>
+                                            <td class="unit-cell">Trung đội 1</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-18" data-unit="2">
+                                            <td class="date-cell">Thứ 4<br><b>18/11</b></td>
+                                            <td class="unit-cell">Trung đội 2</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-18" data-unit="3">
+                                            <td class="date-cell">Thứ 4<br><b>18/11</b></td>
+                                            <td class="unit-cell">Đại đội bộ</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable day-start" data-day="2026-11-19" data-unit="1">
+                                            <td class="date-cell">Thứ 5<br><b>19/11</b></td>
+                                            <td class="unit-cell">Trung đội 1</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-19" data-unit="2">
+                                            <td class="date-cell">Thứ 5<br><b>19/11</b></td>
+                                            <td class="unit-cell">Trung đội 2</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-19" data-unit="3">
+                                            <td class="date-cell">Thứ 5<br><b>19/11</b></td>
+                                            <td class="unit-cell">Đại đội bộ</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable day-start" data-day="2026-11-20" data-unit="1">
+                                            <td class="date-cell">Thứ 6<br><b>20/11</b></td>
+                                            <td class="unit-cell">Trung đội 1</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-20" data-unit="2">
+                                            <td class="date-cell">Thứ 6<br><b>20/11</b></td>
+                                            <td class="unit-cell">Trung đội 2</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-20" data-unit="3">
+                                            <td class="date-cell">Thứ 6<br><b>20/11</b></td>
+                                            <td class="unit-cell">Đại đội bộ</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable day-start" data-day="2026-11-21" data-unit="1">
+                                            <td class="date-cell">Thứ 7<br><b>21/11</b></td>
+                                            <td class="unit-cell">Trung đội 1</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-21" data-unit="2">
+                                            <td class="date-cell">Thứ 7<br><b>21/11</b></td>
+                                            <td class="unit-cell">Trung đội 2</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-21" data-unit="3">
+                                            <td class="date-cell">Thứ 7<br><b>21/11</b></td>
+                                            <td class="unit-cell">Đại đội bộ</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable day-start" data-day="2026-11-22" data-unit="1">
+                                            <td class="date-cell">CN<br><b>22/11</b></td>
+                                            <td class="unit-cell">Trung đội 1</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-22" data-unit="2">
+                                            <td class="date-cell">CN<br><b>22/11</b></td>
+                                            <td class="unit-cell">Trung đội 2</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                        <tr class="clickable " data-day="2026-11-22" data-unit="3">
+                                            <td class="date-cell">CN<br><b>22/11</b></td>
+                                            <td class="unit-cell">Đại đội bộ</td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right mt-cell"><span class="muted">—</span></td>
+                                            <td class="right positive">—</td>
+                                            <td class="right negative">—</td>
+                                            <td class="right total-cell"><span class="muted">Chưa nhập</span></td>
+                                            <td class="rank-cell">—</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+                    </div>
+                    <article class="panel weekly-ledger">
+                        <div class="panel-head">
+                            <div>
+                                <h2>B. TỔNG HỢP ĐIỂM THI ĐUA TRONG TUẦN</h2>
+                                <p id="weeklyLedgerRange">Từ 16/11/2026 đến 22/11/2026 · TB điểm nền + cộng – trừ</p>
+                            </div><span class="mini-tag">TỔNG HỢP</span>
+                        </div>
+                        <div class="table-wrap ledger-scroll">
+                            <table class="data-table ledger-table">
+                                <thead>
+                                    <tr id="weeklyCols">
+                                        <th>Số ngày</th>
+                                        <th>Đơn vị</th>
+                                        <th class="right" title="MT1">MT1</th>
+                                        <th class="right" title="MT2">MT2</th>
+                                        <th class="right" title="MT3">MT3</th>
+                                        <th class="right" title="MT4">MT4</th>
+                                        <th class="right">Cộng</th>
+                                        <th class="right">Trừ</th>
+                                        <th class="right">Tổng (TB)</th>
+                                        <th>Hạng</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="weeklyRows">
+                                    <tr>
+                                        <td>0/7</td>
+                                        <td class="unit-cell">Trung đội 1</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right positive">0</td>
+                                        <td class="right negative">0</td>
+                                        <td class="right total-cell">—</td>
+                                        <td class="rank-cell">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>0/7</td>
+                                        <td class="unit-cell">Trung đội 2</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right positive">0</td>
+                                        <td class="right negative">0</td>
+                                        <td class="right total-cell">—</td>
+                                        <td class="rank-cell">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>0/7</td>
+                                        <td class="unit-cell">Đại đội bộ</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right mt-cell">—</td>
+                                        <td class="right positive">0</td>
+                                        <td class="right negative">0</td>
+                                        <td class="right total-cell">—</td>
+                                        <td class="rank-cell">—</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </section>
+                <section class="view" id="view-analysis" hidden="">
+                    <div class="panel analysis-toolbar">
+                        <div>
+                            <h2>So sánh xu hướng thi đua</h2>
+                            <p>So sánh kết quả theo ngày, giữa các tuần và tổng hợp tháng</p>
+                        </div>
+                        <div class="sub-tabs" id="analysisTabs"><button class="sub-tab active" data-period="day">Theo
+                                ngày</button><button class="sub-tab" data-period="week">Theo tuần</button><button
+                                class="sub-tab" data-period="month">Theo tháng</button></div>
+                    </div>
+                    <article class="panel analysis-chart">
+                        <div class="panel-head">
+                            <div>
+                                <h2 id="analysisChartTitle">So sánh 7 ngày trong tuần</h2>
+                                <p id="analysisChartSub">Số liệu theo đơn vị, tự động cập nhật</p>
+                            </div><label class="month-control" id="monthControl" hidden="">Tháng báo cáo<input
+                                    id="selectedMonth" type="month"></label>
+                        </div>
+                        <div class="chart" id="analysisChart"></div>
+                        <div class="legend" id="analysisLegend"></div>
+                    </article>
+                    <article class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h2 id="analysisTableTitle">Tổng hợp tuần và chênh lệch</h2>
+                                <p id="analysisTableCaption">Không làm tròn trước khi xếp hạng</p>
+                            </div>
+                        </div>
+                        <div id="analysisTable"></div>
+                    </article>
+                </section>
+                <section class="view" id="view-remarks" hidden="">
+                    <div class="two-col-remarks">
+                        <article class="panel keyword-panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Từ khóa ưu điểm</h2>
+                                    <p>Chọn các nội dung đúng với thực tế đơn vị</p>
+                                </div><span class="count-bubble" id="positiveCount">0</span>
+                            </div>
+                            <div class="keyword-group positive" id="positiveKeywords"><button type="button"
+                                    class="keyword-chip positive " data-index="0" title="Chọn">+ Tư tưởng cán bộ, chiến
+                                    sĩ
+                                    ổn định</button><button type="button" class="keyword-chip positive " data-index="1"
+                                    title="Chọn">+ Tổ chức thực hiện nhiệm vụ nghiêm túc</button><button type="button"
+                                    class="keyword-chip positive " data-index="2" title="Chọn">+ Nội vụ vệ sinh gọn
+                                    sạch,
+                                    thống nhất</button><button type="button" class="keyword-chip positive "
+                                    data-index="3" title="Chọn">+ Lễ tiết, tác phong có chuyển biến tiến
+                                    bộ</button><button type="button" class="keyword-chip positive " data-index="4"
+                                    title="Chọn">+ Tuần tra, canh gác bảo đảm
+                                    an toàn</button><button type="button" class="keyword-chip positive " data-index="5"
+                                    title="Chọn">+ Chấp hành tốt các chế độ, nền nếp</button><button type="button"
+                                    class="keyword-chip positive " data-index="6" title="Chọn">+ Công tác huấn luyện bảo
+                                    đảm
+                                    yêu cầu</button><button type="button" class="keyword-chip positive " data-index="7"
+                                    title="Chọn">+ Đoàn kết nội bộ tốt</button><button type="button"
+                                    class="keyword-chip positive " data-index="8" title="Chọn">+ Công tác hậu cần bảo
+                                    đảm</button><button type="button" class="keyword-chip positive " data-index="9"
+                                    title="Chọn">+ Chủ động khắc phục hạn chế tuần trước</button><button type="button"
+                                    class="keyword-chip positive " data-index="10" title="Chọn">+ Tích cực thực hiện
+                                    nhiệm
+                                    vụ đột xuất</button><button type="button" class="keyword-chip positive "
+                                    data-index="11" title="Chọn">+ Duy trì tốt nền nếp chính quy</button></div>
+                            <div class="custom-keyword"><input id="customPositive"
+                                    placeholder="Thêm từ khóa ưu điểm khác..."><button class="btn btn-outline"
+                                    id="addPositive">Thêm</button></div><label class="block">Diễn biến / bằng chứng cụ
+                                thể<textarea id="positiveDetails" rows="3"
+                                    placeholder="Ghi rõ việc đã làm tốt; AI chỉ sử dụng thông tin được nhập."></textarea></label>
+                        </article>
+                        <article class="panel keyword-panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Từ khóa khuyết điểm</h2>
+                                    <p>Chỉ chọn những hạn chế đã được ghi nhận</p>
+                                </div><span class="count-bubble" id="negativeCount">0</span>
+                            </div>
+                            <div class="keyword-group negative" id="negativeKeywords"><button type="button"
+                                    class="keyword-chip negative " data-index="0" title="Chọn">+ Tác phong thực hiện
+                                    nhiệm
+                                    vụ còn chậm</button><button type="button" class="keyword-chip negative "
+                                    data-index="1" title="Chọn">+ Trật tự nghe đọc báo, xem thời sự chưa
+                                    nghiêm</button><button type="button" class="keyword-chip negative " data-index="2"
+                                    title="Chọn">+ Nội vụ vệ
+                                    sinh một số vị trí chưa đều</button><button type="button"
+                                    class="keyword-chip negative " data-index="3" title="Chọn">+ Ý thức tự giác chưa cao
+                                    ở một số thời điểm</button><button type="button" class="keyword-chip negative "
+                                    data-index="4" title="Chọn">+ Nền nếp chính
+                                    quy duy trì chưa thường xuyên</button><button type="button"
+                                    class="keyword-chip negative " data-index="5" title="Chọn">+ Chậm khắc phục hạn chế
+                                    đã
+                                    chỉ ra</button><button type="button" class="keyword-chip negative " data-index="6"
+                                    title="Chọn">+ Chất lượng thực hiện nhiệm vụ chưa đồng đều</button><button
+                                    type="button" class="keyword-chip negative " data-index="7" title="Chọn">+ Công tác
+                                    kiểm tra, đôn đốc
+                                    chưa thường xuyên</button><button type="button" class="keyword-chip negative "
+                                    data-index="8" title="Chọn">+ Một số nội dung thực hiện chưa đạt yêu
+                                    cầu</button><button type="button" class="keyword-chip negative " data-index="9"
+                                    title="Chọn">+ Chấp hành giờ
+                                    giấc còn hạn chế</button><button type="button" class="keyword-chip negative "
+                                    data-index="10" title="Chọn">+ Sự phối hợp giữa các bộ phận chưa chặt
+                                    chẽ</button><button type="button" class="keyword-chip negative " data-index="11"
+                                    title="Chọn">+ Kết quả chấm điểm có thời điểm giảm</button></div>
+                            <div class="custom-keyword"><input id="customNegative"
+                                    placeholder="Thêm từ khóa khuyết điểm khác..."><button class="btn btn-outline"
+                                    id="addNegative">Thêm</button></div><label class="block">Diễn biến / nguyên nhân cụ
+                                thể<textarea id="negativeDetails" rows="3"
+                                    placeholder="Ví dụ: Một số vị trí còn chưa gọn sạch trong ngày..."></textarea></label>
+                        </article>
+                    </div>
+                    <article class="panel remark-summary">
+                        <div class="panel-head">
+                            <div>
+                                <h2>Soạn nhận xét báo cáo thi đua</h2>
+                                <p>Điểm số do chương trình tính; nội dung thực tế do người sử dụng xác nhận</p>
+                            </div><span class="mini-tag accent">OFFLINE / GEMINI ONLINE</span>
+                        </div>
+                        <div class="form-row three"><label>Biện pháp / kiến nghị<input id="recommendation"
+                                    placeholder="Tiếp tục duy trì nền nếp; tăng cường kiểm tra..."></label><label>Tập
+                                thể
+                                biểu dương<input id="collective" placeholder="Tên đơn vị"></label><label>Cá nhân biểu
+                                dương<input id="individual" placeholder="Họ tên, chức vụ (nếu có)"></label></div>
+                        <div class="remark-actions"><button class="btn btn-primary" id="draftTemplate">✦ Soạn gợi ý tự
+                                động</button><button class="btn btn-ai" id="draftGemini"
+                                title="Dùng Gemini Online khi có Internet và được phép chia sẻ dữ liệu">✧ Gemini
+                                Online</button><button class="btn btn-outline" id="saveRemark">Lưu nhận
+                                xét</button><button class="btn btn-outline" id="exportWord">Xuất Word</button></div>
+                        <div class="gemini-consent">
+                            <label class="consent-checkbox"><input id="approveCloud" type="checkbox"> Tôi xác nhận được
+                                phép
+                                gửi dữ liệu điểm và các từ khóa đã chọn tới dịch vụ Gemini qua Internet.</label>
+                            <label class="consent-checkbox"><input id="sendNotes" type="checkbox"> Cho phép gửi thêm ghi
+                                chú
+                                chi tiết, diễn biến theo ngày (có thể chứa thông tin nội bộ; mặc định tắt).</label>
+                            <p class="fineprint">Chỉ nút Gemini Online mới gửi dữ liệu ra ngoài; chế độ soạn tự động
+                                Offline
+                                không gửi gì. Hãy kiểm tra quy định bảo mật của đơn vị trước khi sử dụng.</p>
+                        </div>
+                        <div class="editor-header"><span>II. NHẬN XÉT TUẦN – BẢN DỰ THẢO</span><span
+                                id="editorStatus">Chưa
+                                tạo</span></div>
+                        <textarea id="draftText" class="draft-editor" spellcheck="true"
+                            placeholder="Chọn từ khóa ưu, khuyết điểm rồi nhấn 'Soạn gợi ý tự động'...\n\nNội dung có thể sửa trực tiếp trước khi lưu và xuất Word."></textarea>
+                        <p class="fineprint"><b>Lưu ý:</b> Chế độ “Soạn gợi ý tự động” dùng quy tắc lập trình, không
+                            phải AI
+                            tạo sinh. Gemini là AI Online cần Internet và một API key đã tích hợp khi tạo Setup hoặc
+                            nhập
+                            trong Cài đặt; chỉ hoạt động khi xác nhận gửi dữ liệu. Chế độ soạn tự động luôn hoạt động
+                            Offline.</p>
+                    </article>
+                </section>
+                <section class="view" id="view-settings" hidden="">
+                    <div class="content-grid settings-grid">
+                        <article class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Thông tin đơn vị</h2>
+                                    <p>Hiển thị trên báo cáo Word</p>
+                                </div>
+                            </div>
+                            <form id="settingsForm"><label class="block">Tên đơn vị cấp trên / phiên hiệu báo cáo<input
+                                        id="unitTitle" placeholder="ĐẠI ĐỘI 9"></label><label class="block">Tổ / bộ
+                                    phận<input id="groupTitle" placeholder="TỔ THI ĐUA - KHEN THƯỞNG"></label>
+                                <div class="form-row two"><label>Dòng tiêu đề tổng hợp<input id="reportTitle"
+                                            placeholder="TỔNG HỢP"></label><label>Tên phong trào<input
+                                            id="campaignTitle" placeholder="Phong trào thi đua Quyết thắng"></label>
+                                </div>
+                                <label class="block">Địa điểm lập báo cáo<input id="reportPlace"
+                                        placeholder="Thành phố Hồ Chí Minh"></label>
+                                <div class="form-row two"><label>Tổng hợp từ ngày (có thể đổi)<input id="periodStart"
+                                            type="date"></label><label>Đến ngày<input id="periodEnd"
+                                            type="date"></label>
+                                </div>
+                                <p class="fineprint">Để trống cả hai ô ngày để xuất báo cáo theo tuần đang chọn. Khi
+                                    nhập
+                                    khoảng riêng, báo cáo Word sẽ lấy đúng điểm trong khoảng ngày đó (tối đa 32 ngày).
+                                </p>
+                                <button class="btn btn-primary" type="submit">Lưu thông tin báo cáo</button>
+                                <hr>
+                                <h3>AI Gemini Online (tùy chọn)</h3>
+                                <p class="fineprint"><strong>Đã tích hợp Gemini API:</strong> phần mềm tự gọi HTTPS tới
+                                    Google; không cần cài thư viện AI riêng. Bản cài phân phối khách hàng có thể được
+                                    cấu
+                                    hình sẵn khóa từ máy đóng gói: khách không phải nhập khóa. Dùng nút <b>Thử kết
+                                        nối</b>
+                                    để kiểm tra. Chỉ nhập khóa bên dưới khi cần thay thế. Không gửi dữ liệu thi đua khi
+                                    chưa
+                                    được phép.</p>
+                                <label class="block">Mô hình Gemini (chỉnh nếu tài khoản của bạn hỗ trợ tên khác)<input
+                                        id="geminiModel" value="gemini-3.5-flash"
+                                        placeholder="gemini-3.5-flash"></label>
+                                <label class="block">Khóa Gemini thay thế (không bắt buộc nếu đã tích hợp)<input
+                                        id="geminiKey" type="password" autocomplete="new-password"
+                                        placeholder="Chỉ dán khóa mới khi cần thay thế khóa cài sẵn"></label>
+                                <div class="form-actions"><button class="btn btn-outline" id="saveGemini"
+                                        type="button">Lưu
+                                        cài đặt Gemini</button><button class="btn btn-ai" id="testGemini"
+                                        type="button">Thử
+                                        kết nối Gemini</button><button class="btn btn-outline" id="clearGemini"
+                                        type="button">Xóa khóa đã nhập riêng</button></div>
+                                <p class="fineprint" id="geminiStatus" role="status" aria-live="polite">Đang kiểm tra
+                                    trạng
+                                    thái API key...</p>
+                            </form>
+                        </article>
+                        <article class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Hệ thống và dữ liệu</h2>
+                                    <p>Chỉ trên máy tính đang sử dụng</p>
+                                </div>
+                            </div>
+                            <div class="system-items">
+                                <div><span>Tình trạng</span><b>Hoạt động nội bộ · Offline</b></div>
+                                <div><span>Địa chỉ</span><code>127.0.0.1 (localhost)</code></div>
+                                <div><span>Thư mục dữ liệu</span><code id="dataLocation"></code></div>
+                                <div><span>Phiên bản</span><b id="appVersion"></b></div>
+                            </div>
+                            <div class="settings-actions"><button class="btn btn-outline" id="backupBtn">Tải bản sao lưu
+                                    dữ
+                                    liệu</button><button class="btn btn-outline" id="demoBtn">Nạp tuần mẫu
+                                    05–11/01/2026</button></div>
+                            <p class="fineprint">Dữ liệu mẫu chỉ được nạp khi bạn bấm nút và không ghi đè điểm đã có.
+                                Nên
+                                sao lưu định kỳ ra thiết bị lưu trữ được phép sử dụng tại đơn vị.</p>
+                            <hr><label class="block">Thêm phiên hiệu đơn vị<input id="newUnit"
+                                    placeholder="Ví dụ: Trung đội 4/C104"></label><button class="btn btn-outline"
+                                id="addUnit">Thêm đơn vị</button>
+                            <hr>
+                            <h3>Sửa phiên hiệu các đơn vị đang có</h3>
+                            <p class="fineprint">Đổi tên không làm mất điểm: mỗi đơn vị giữ nguyên mã nội bộ và lịch sử
+                                chấm
+                                điểm.</p>
+                            <div id="unitManager" class="manager-list"></div>
+                        </article>
+                        <article class="panel criteria-panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Quản lý mục tiêu thi đua (MT)</h2>
+                                    <p>Thêm MT5, MT6…; sửa tên; bật/ẩn MT theo phong trào</p>
+                                </div>
+                            </div>
+                            <div class="add-criterion"><input id="newCriterion" maxlength="80"
+                                    placeholder="Tên MT mới (ví dụ: Công tác trực SSCĐ)"><button class="btn btn-primary"
+                                    id="addCriterion" type="button">＋ Thêm MT tiếp theo</button></div>
+                            <p class="fineprint">Ẩn MT sẽ không xóa lịch sử điểm. MT ẩn vẫn xuất hiện trong báo cáo có
+                                số
+                                liệu cũ.</p>
+                            <div id="criteriaManager" class="manager-list"></div>
+                        </article>
+                        <article class="panel" style="margin-top:16px;max-width:680px">
+                            <div class="panel-head">
+                                <div>
+                                    <h2>Bảo mật tài khoản</h2>
+                                    <p>Thay đổi mật khẩu đăng nhập trên chính máy tính này.</p>
+                                </div>
+                            </div>
+                            <form id="changePasswordForm">
+                                <label class="block">Mật khẩu hiện tại<input type="password" id="oldPassword"
+                                        autocomplete="current-password" required=""></label>
+                                <label class="block">Mật khẩu mới (ít nhất 10 ký tự)<input type="password"
+                                        id="newPassword" autocomplete="new-password" minlength="10" required=""></label>
+                                <label class="block">Nhập lại mật khẩu mới<input type="password" id="newPasswordConfirm"
+                                        autocomplete="new-password" minlength="10" required=""></label>
+                                <button class="btn btn-primary" type="submit">Đổi mật khẩu</button>
+                            </form>
+                            <p class="fineprint">Mật khẩu được lưu dưới dạng băm có muối; không lưu mật khẩu dạng văn
+                                bản.
+                                Nên sao lưu dữ liệu định kỳ.</p>
+                        </article>
+                    </div>
+                </section>
+                <footer>HỆ THỐNG THI ĐUA ĐIỆN TỬ · V1.0.0 · Tác giả: 3/ Phan Đình Tuấn · Chính trị viên/cBB9 · SỬ DỤNG CỤC BỘ   
+                </footer>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
