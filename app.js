@@ -126,12 +126,15 @@ async function api(path, options={}) {
     try {
         response = await fetch(path, opts);
     } catch (e) {
-        throw Error('Không kết nối được ứng dụng cục bộ. Kiểm tra chương trình đang chạy.');
+        throw Error('Không kết nối được dịch vụ ứng dụng. Hãy chạy "npm start" trong thư mục dự án rồi mở http://127.0.0.1:4173.');
     }
     let result;
     try {
         result = await response.json();
     } catch (e) {
+        if (path.startsWith('/api/')) {
+            throw Error('Địa chỉ hiện tại không có API của ứng dụng. Có thể bạn đang dùng Live Server. Hãy dừng Live Server, chạy "npm start" trong thư mục dự án rồi mở http://127.0.0.1:4173.');
+        }
         throw Error('Máy chủ trả về dữ liệu không hợp lệ.');
     }
     if (!response.ok) {
@@ -199,6 +202,8 @@ function renderDashboard() {
     const avgComplete = state.units.length && week.complete;
     const kpis = [['Điểm trung bình các đơn vị', avg != null ? formatNum(avg, 1) : '—', avgComplete ? 'Đã đủ dữ liệu tuần' : 'Tạm tính theo dữ liệu đã nhập', '◇'], ['Đơn vị dẫn đầu', leader ? escapeHtml(leader.unit_name) : '—', leader ? formatNum(leader.score_rounded) + ' điểm · Hạng I' : 'Chưa có điểm', '★'], ['Số lượt đã nhập', `${filled}/${total}`, filled === total ? 'Đã hoàn thành 7 ngày' : 'Còn ' + (total - filled) + ' lượt chưa nhập', '▦'], ['Điểm thưởng / điểm trừ', `${formatNum(week.units.reduce( (x, u) => x + u.bonus, 0))} / ${formatNum(week.units.reduce( (x, u) => x + u.penalty, 0))}`, 'Tổng cộng trong tuần', '⊕']];
     $('kpis').innerHTML = kpis.map(k => `<div class="kpi"><div class="kpi-top">${k[0]}</div><div class="kpi-value">${k[1]}</div><div class="kpi-sub">${k[2]}</div><span class="kpi-icon">${k[3]}</span></div>`).join('');
+    $('dashboardDemoCallout').hidden = Boolean(week.complete);
+    $('dashboardDemoProgress').textContent = `Đã nhập ${filled} trên ${total} lượt cho tuần ${formatDay(week.start)} – ${formatDay(week.end)}.`;
     $('dashRange').textContent = rangeText();
     const conf = state.info?.settings || {};
     $('reportBannerTitle').textContent = conf.report_title || 'TỔNG HỢP';
@@ -689,7 +694,7 @@ function renderSettings() {
     renderUnitManager();
     renderCriteriaManager();
     $('geminiModel').value = state.gemini?.model || 'gemini-3.5-flash';
-    $('geminiStatus').textContent = state.gemini?.preconfigured ? 'Đã tích hợp Gemini khi tạo Setup. Cần Internet để dùng Gemini.' : state.gemini?.configured ? 'Đã lưu khóa riêng bằng Windows DPAPI. Có thể thử kết nối Gemini.' : 'Chưa có API key. Chấm điểm và báo cáo vẫn hoạt động hoàn toàn Offline.';
+    $('geminiStatus').textContent = state.gemini?.preconfigured ? 'Đã cấu hình GEMINI_API_KEY trong môi trường dịch vụ.' : state.gemini?.configured ? 'Khóa chỉ được giữ trong bộ nhớ dịch vụ đến khi tắt ứng dụng.' : 'Chưa có API key. Chấm điểm và báo cáo vẫn hoạt động hoàn toàn Offline.';
     $('dataLocation').textContent = state.info.data_location;
     $('appVersion').textContent = state.info.version;
 }
@@ -924,23 +929,8 @@ function setupEvents() {
         msg('Đã yêu cầu tải bản sao lưu.');
     }
     );
-    $('demoBtn').addEventListener('click', async () => {
-        if (!confirm('Nạp 21 lượt điểm minh họa theo tài liệu tuần 05–11/01/2026? Không ghi đè dữ liệu đã có.'))
-            return;
-        try {
-            let result = await api('/api/demo/load', {
-                method: 'POST',
-                body: {}
-            });
-            $('globalWeek').value = result.week_start;
-            setView('dashboard');
-            await refresh();
-            msg('Đã nạp ' + result.imported + ' dòng dữ liệu mẫu. Dữ liệu có sẵn không bị ghi đè.');
-        } catch (e) {
-            msg(e.message, 'error');
-        }
-    }
-    );
+    $('dashboardDemoBtn').addEventListener('click', event => loadDemoData(event.currentTarget));
+    $('demoBtn').addEventListener('click', event => loadDemoData(event.currentTarget));
     $('addUnit').addEventListener('click', addUnit);
     $('addCriterion').addEventListener('click', addCriterion);
     $('editReportBtn').addEventListener('click', () => setView('settings'));
@@ -962,6 +952,29 @@ function setupEvents() {
     $('changePasswordForm').addEventListener('submit', submitChangePassword);
     $('authForm').addEventListener('submit', submitAuth);
 }
+async function loadDemoData(button) {
+    if (!confirm('Tạo dữ liệu GIẢ LẬP cho 6 tuần đến tuần đang chọn, gồm điểm theo mục tiêu, cộng/trừ và nhận xét? Chỉ thêm vào ngày/đơn vị còn trống; dữ liệu hiện có không bị ghi đè.'))
+        return;
+    const buttons = [$('dashboardDemoBtn'), $('demoBtn')];
+    buttons.forEach(item => item.disabled = true);
+    const originalText = button.textContent;
+    button.textContent = 'Đang tạo dữ liệu…';
+    try {
+        const result = await api('/api/demo/load', {
+            method: 'POST',
+            body: { week_start: state.weekStart }
+        });
+        $('globalWeek').value = result.week_start;
+        await refresh();
+        setView('dashboard');
+        msg(`Đã tạo ${result.imported} dòng GIẢ LẬP cho ${result.weeks_generated} tuần (${formatDay(result.first_week)} – ${formatDay(addDays(result.week_start, 6))}); ${result.remarks_imported} tuần nhận xét mẫu. ${result.existing} dòng điểm đang có được giữ nguyên.`);
+    } catch (e) {
+        msg(e.message, 'error');
+    } finally {
+        button.textContent = originalText;
+        buttons.forEach(item => item.disabled = false);
+    }
+}
 function showAuth(firstRun) {
     state.auth = null;
     $('mainApp').hidden = true;
@@ -980,63 +993,34 @@ function showAuth(firstRun) {
     setTimeout( () => $('authPassword').focus(), 0);
 }
 async function startAuthorized(data) {
+    const [info, units, criteria, gemini] = await Promise.all([
+        api('/api/info'),
+        api('/api/units'),
+        api('/api/criteria'),
+        api('/api/gemini/settings')
+    ]);
     state.auth = {
         username: data.username,
         csrf: data.csrf
     };
+    state.info = info;
+    state.units = units;
+    state.criteria = criteria;
+    state.gemini = gemini;
+    state.week = null;
+    state.entries = [];
+    $('scoreUnit').innerHTML = state.units.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
+    renderCriteriaInputs();
+    try {
+        await refresh();
+    } catch (error) {
+        state.auth = null;
+        throw error;
+    }
     $('currentUser').textContent = 'Tài khoản: ' + data.username;
     $('authView').hidden = true;
     $('mainApp').hidden = false;
-    state.info = state.info || {
-        version: 'V1.0.0',
-        data_location: 'Trình duyệt (dữ liệu trên máy)',
-        settings: {
-            unit_title: 'ĐẠI ĐỘI 9',
-            group_title: 'TỔ THI ĐUA - KHEN THƯỞNG',
-            report_title: 'TỔNG HỢP',
-            campaign_title: 'Thượng úy Phan Đình Tuấn - Chính trị viên Đại đội 9'
-        },
-        positive_keywords: ['Nền nếp tốt', 'Nhiệm vụ hoàn thành', 'Tác phong nghiêm túc'],
-        negative_keywords: ['Tác phong chậm', 'Nền nếp chưa ổn', 'Còn sót việc']
-    };
-    state.gemini = state.gemini || { configured: false };
-    state.units = state.units?.length ? state.units : [
-        { id: 1, name: 'Trung đội 1' },
-        { id: 2, name: 'Trung đội 2' },
-        { id: 3, name: 'Đại đội bộ' }
-    ];
-    state.criteria = state.criteria?.length ? state.criteria : [
-        { code: 'MT1', label: 'MT1', active: true },
-        { code: 'MT2', label: 'MT2', active: true },
-        { code: 'MT3', label: 'MT3', active: true },
-        { code: 'MT4', label: 'MT4', active: true }
-    ];
-    $('scoreUnit').innerHTML = state.units.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
-    renderCriteriaInputs();
-    state.week = state.week || {
-        start: state.weekStart,
-        end: addDays(state.weekStart, 6),
-        complete: false,
-        data: [],
-        units: state.units.map(u => ({
-            unit_id: u.id,
-            unit_name: u.name,
-            score: null,
-            score_rounded: null,
-            bonus: 0,
-            penalty: 0,
-            days_filled: 0,
-            complete: false,
-            rank: null,
-            rank_roman: '—'
-        }))
-    };
-    state.entries = [];
-    renderDashboard();
-    renderEntryRows();
-    renderWeeklyLedger();
     renderSettings();
-    updateRemarksUI();
     setView('dashboard');
 }
 async function submitAuth(event) {
@@ -1080,10 +1064,11 @@ async function submitAuth(event) {
             if (passwordHash !== account.passwordHash)
                 throw Error('Mật khẩu không đúng.');
         }
-        sessionStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({ username: account.username }));
         await startAuthorized({ username: account.username, csrf: '' });
+        sessionStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({ username: account.username }));
         msg(firstRun ? 'Đã tạo tài khoản quản trị và đăng nhập.' : 'Đã đăng nhập thành công.');
     } catch (e) {
+        state.auth = null;
         $('authError').textContent = e.message;
         $('authError').hidden = false;
     } finally {
@@ -1154,7 +1139,13 @@ async function init() {
         session = null;
     }
     if (session?.username && account?.username === session.username) {
-        await startAuthorized({ username: session.username, csrf: '' });
+        try {
+            await startAuthorized({ username: session.username, csrf: '' });
+        } catch (error) {
+            showAuth(false);
+            $('authError').textContent = error.message;
+            $('authError').hidden = false;
+        }
     } else {
         showAuth(!account);
     }

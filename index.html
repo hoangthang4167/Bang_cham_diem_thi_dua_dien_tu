@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
@@ -111,6 +111,14 @@
                                 22/11/2026</small></div><button class="btn btn-outline" type="button"
                             id="editReportBtn">✎
                             Sửa đơn vị / kỳ báo cáo</button>
+                    </div>
+                    <div class="demo-callout" id="dashboardDemoCallout" hidden>
+                        <div>
+                            <strong>Tuần này chưa đủ dữ liệu thống kê</strong>
+                            <span id="dashboardDemoProgress"></span>
+                            <small>Dữ liệu giả lập được đánh dấu riêng và không ghi đè các lượt điểm đã có.</small>
+                        </div>
+                        <button class="btn btn-primary" id="dashboardDemoBtn" type="button">Tạo dữ liệu giả lập để xem thống kê</button>
                     </div>
                     <div class="kpi-grid" id="kpis">
                         <div class="kpi">
@@ -737,11 +745,9 @@
                         <textarea id="draftText" class="draft-editor" spellcheck="true"
                             placeholder="Chọn từ khóa ưu, khuyết điểm rồi nhấn 'Soạn gợi ý tự động'...\n\nNội dung có thể sửa trực tiếp trước khi lưu và xuất Word."></textarea>
                         <p class="fineprint"><b>Lưu ý:</b> Chế độ “Soạn gợi ý tự động” dùng quy tắc lập trình, không
-                            phải AI
-                            tạo sinh. Gemini là AI Online cần Internet và một API key đã tích hợp khi tạo Setup hoặc
-                            nhập
-                            trong Cài đặt; chỉ hoạt động khi xác nhận gửi dữ liệu. Chế độ soạn tự động luôn hoạt động
-                            Offline.</p>
+                        phải AI tạo sinh. Gemini là AI Online cần Internet và API key; khóa nhập trong Cài đặt chỉ
+                        được giữ trong bộ nhớ dịch vụ đến khi tắt ứng dụng. Chỉ hoạt động khi xác nhận gửi dữ liệu.
+                        Chế độ soạn tự động luôn hoạt động Offline.</p>
                     </article>
                 </section>
                 <section class="view" id="view-settings" hidden="">
@@ -773,10 +779,10 @@
                                 <button class="btn btn-primary" type="submit">Lưu thông tin báo cáo</button>
                                 <hr>
                                 <h3>AI Gemini Online (tùy chọn)</h3>
-                                <p class="fineprint"><strong>Đã tích hợp Gemini API:</strong> phần mềm tự gọi HTTPS tới
-                                    Google; không cần cài thư viện AI riêng. Bản cài phân phối khách hàng có thể được
-                                    cấu
-                                    hình sẵn khóa từ máy đóng gói: khách không phải nhập khóa. Dùng nút <b>Thử kết
+                                <p class="fineprint"><strong>Gemini API tùy chọn:</strong> dịch vụ tự gọi HTTPS tới
+                                    Google; cần Internet và API key. Có thể đặt GEMINI_API_KEY trước khi chạy dịch vụ
+                                    hoặc nhập khóa trong phiên hiện tại; khóa nhập trong giao diện chỉ được giữ trong
+                                    bộ nhớ đến khi tắt dịch vụ. Dùng nút <b>Thử kết
                                         nối</b>
                                     để kiểm tra. Chỉ nhập khóa bên dưới khi cần thay thế. Không gửi dữ liệu thi đua khi
                                     chưa
@@ -813,11 +819,11 @@
                             </div>
                             <div class="settings-actions"><button class="btn btn-outline" id="backupBtn">Tải bản sao lưu
                                     dữ
-                                    liệu</button><button class="btn btn-outline" id="demoBtn">Nạp tuần mẫu
-                                    05–11/01/2026</button></div>
-                            <p class="fineprint">Dữ liệu mẫu chỉ được nạp khi bạn bấm nút và không ghi đè điểm đã có.
-                                Nên
-                                sao lưu định kỳ ra thiết bị lưu trữ được phép sử dụng tại đơn vị.</p>
+                                    liệu</button><button class="btn btn-outline" id="demoBtn">Tạo dữ liệu giả lập 6 tuần
+                                </button></div>
+                            <p class="fineprint">Dữ liệu giả lập được đánh dấu rõ trong ghi chú, tạo theo tuần đang
+                                chọn và không ghi đè điểm hoặc nhận xét đã có. Dùng trên bản sao dữ liệu nếu cần thử
+                                quản lý cấu hình. Nên sao lưu định kỳ ra thiết bị lưu trữ được phép sử dụng tại đơn vị.</p>
                             <hr><label class="block">Thêm phiên hiệu đơn vị<input id="newUnit"
                                     placeholder="Ví dụ: Trung đội 4/C104"></label><button class="btn btn-outline"
                                 id="addUnit">Thêm đơn vị</button>
