@@ -4,12 +4,13 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, randomInt: cryptoRandomInt } = require('node:crypto');
 const { URL } = require('node:url');
 
 const ROOT = __dirname;
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT || 4173);
+const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
 const DATA_DIR = process.env.THI_DUA_DATA_DIR
     ? path.resolve(process.env.THI_DUA_DATA_DIR)
     : path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), '.local', 'share'), 'BangChamDiemThiDua');
@@ -43,6 +44,23 @@ const DEFAULT_NEGATIVE = [
     'Biện pháp khắc phục chưa cụ thể'
 ];
 
+function randomBetween(min, max) {
+    return cryptoRandomInt(min, max + 1);
+}
+
+function randomItems(items, min, max) {
+    const shuffled = items.slice();
+    for (let index = shuffled.length - 1; index > 0; index--) {
+        const other = randomBetween(0, index);
+        [shuffled[index], shuffled[other]] = [shuffled[other], shuffled[index]];
+    }
+    return shuffled.slice(0, randomBetween(min, Math.min(max, shuffled.length)));
+}
+
+function randomText(items) {
+    return items[randomBetween(0, items.length - 1)];
+}
+
 function defaultStore() {
     return {
         version: 1,
@@ -63,7 +81,7 @@ function defaultStore() {
             report_place: '',
             period_start: '',
             period_end: '',
-            gemini_model: 'gemini-2.5-flash'
+            gemini_model: DEFAULT_GEMINI_MODEL
         }
     };
 }
@@ -163,6 +181,11 @@ function dateUtc(value) {
 
 function isoDate(date) {
     return date.toISOString().slice(0, 10);
+}
+
+function formatDateVi(value) {
+    const [year, month, day] = value.split('-');
+    return `${day}/${month}/${year}`;
 }
 
 function addDays(value, days) {
@@ -338,7 +361,7 @@ function geminiStatus() {
     return {
         configured: Boolean(volatileGeminiKey || process.env.GEMINI_API_KEY),
         preconfigured: Boolean(process.env.GEMINI_API_KEY),
-        model: store.settings.gemini_model || 'gemini-2.5-flash'
+        model: store.settings.gemini_model || DEFAULT_GEMINI_MODEL
     };
 }
 
@@ -379,17 +402,51 @@ function buildDraft(input) {
 async function geminiGenerate(prompt, model) {
     const key = volatileGeminiKey || process.env.GEMINI_API_KEY;
     if (!key) throw httpError(503, 'Chưa cấu hình GEMINI_API_KEY hoặc khóa Gemini trong Cài đặt.');
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        signal: AbortSignal.timeout(30000)
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw httpError(502, result.error?.message || `Gemini trả về lỗi HTTP ${response.status}.`);
-    const text = result.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('').trim();
-    if (!text) throw httpError(502, 'Gemini không trả về nội dung nhận xét.');
-    return text;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const delays = [1000, 2500];
+    let timeoutRetries = 0;
+
+    for (let attempt = 0; ; attempt++) {
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                signal: AbortSignal.timeout(30000)
+            });
+        } catch (error) {
+            const timedOut = error.name === 'TimeoutError' || error.name === 'AbortError';
+            if (timedOut && timeoutRetries < 1) {
+                timeoutRetries++;
+                await new Promise(resolve => setTimeout(resolve, delays[0]));
+                continue;
+            }
+            if (timedOut) {
+                throw httpError(504, 'Gemini phản hồi quá chậm và đã hết thời gian chờ sau khi thử lại. Vui lòng thử lại sau hoặc dùng chức năng soạn nhận xét Offline.');
+            }
+            throw httpError(502, `Không kết nối được Gemini: ${error.message || 'Lỗi mạng không xác định.'}`);
+        }
+        const result = await response.json().catch(() => ({}));
+        if (response.ok) {
+            const text = result.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('').trim();
+            if (!text) throw httpError(502, 'Gemini không trả về nội dung nhận xét.');
+            return text;
+        }
+
+        const message = result.error?.message || `Gemini trả về lỗi HTTP ${response.status}.`;
+        const overloaded = /high demand|overload|temporarily unavailable/i.test(message);
+        const retryable = [500, 502, 503, 504].includes(response.status)
+            || (response.status === 429 && overloaded);
+        if (retryable && attempt < delays.length) {
+            await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+            continue;
+        }
+        if ((response.status === 429 || response.status === 503) && overloaded) {
+            throw httpError(503, 'Gemini đang quá tải. Dịch vụ đã tự thử lại nhưng chưa thành công; vui lòng đợi một lúc rồi thử lại, hoặc dùng chức năng soạn nhận xét Offline.');
+        }
+        throw httpError(502, message);
+    }
 }
 
 function wordDocument(startValue) {
@@ -401,7 +458,7 @@ function wordDocument(startValue) {
     const title = settings.report_title || 'TỔNG HỢP';
     const tableRows = period.units.map(unit => `<tr><td>${htmlEscape(unit.unit_name)}</td><td>${unit.days_filled}/${period.expected_days}</td><td>${unit.avg_base === null ? '—' : unit.avg_base.toFixed(2)}</td><td>${unit.bonus.toFixed(2)}</td><td>${unit.penalty.toFixed(2)}</td><td>${unit.score === null ? '—' : unit.score.toFixed(2)}</td><td>${htmlEscape(unit.rank_roman)}</td></tr>`).join('');
     const details = htmlEscape(remark.draft || buildDraft(remark)).replace(/\n/g, '<br>');
-    const html = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;color:#333}h1,h2,p{text-align:center}table{border-collapse:collapse;width:100%}th,td{border:1px solid #555;padding:6px}th{background:#ffcb3d}</style></head><body><h1>${htmlEscape(title)}</h1><p>${htmlEscape(settings.unit_title || '')}</p><p>${htmlEscape(settings.group_title || '')}</p><p>Từ ${period.start} đến ${period.end}</p><table><thead><tr><th>Đơn vị</th><th>Số ngày</th><th>TB điểm gốc</th><th>Cộng</th><th>Trừ</th><th>Tổng điểm</th><th>Hạng</th></tr></thead><tbody>${tableRows}</tbody></table><h2>Nhận xét</h2><p style="text-align:left">${details}</p><p style="text-align:right">${htmlEscape(settings.report_place || '')}, ngày ${new Date().toLocaleDateString('vi-VN')}</p></body></html>`;
+    const html = `<!doctype html><html lang="vi-VN"><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;color:#333}h1,h2,p{text-align:center}table{border-collapse:collapse;width:100%}th,td{border:1px solid #555;padding:6px}th{background:#ffcb3d}</style></head><body><h1>${htmlEscape(title)}</h1><p>${htmlEscape(settings.unit_title || '')}</p><p>${htmlEscape(settings.group_title || '')}</p><p>Từ ${formatDateVi(period.start)} đến ${formatDateVi(period.end)}</p><table><thead><tr><th>Đơn vị</th><th>Số ngày</th><th>TB điểm gốc</th><th>Cộng</th><th>Trừ</th><th>Tổng điểm</th><th>Hạng</th></tr></thead><tbody>${tableRows}</tbody></table><h2>Nhận xét</h2><p style="text-align:left">${details}</p><p style="text-align:right">${htmlEscape(settings.report_place || '')}, ngày ${new Date().toLocaleDateString('vi-VN')}</p></body></html>`;
     return Buffer.from(`\ufeff${html}`, 'utf8');
 }
 
@@ -548,7 +605,7 @@ async function handleApi(req, res, url) {
             report_place: textField(body.report_place, 'Địa điểm', 160),
             period_start: body.period_start || '',
             period_end: body.period_end || '',
-            gemini_model: store.settings.gemini_model || 'gemini-2.5-flash'
+            gemini_model: store.settings.gemini_model || DEFAULT_GEMINI_MODEL
         };
         if (Boolean(settings.period_start) !== Boolean(settings.period_end)) {
             throw httpError(400, 'Cần nhập cả ngày bắt đầu và ngày kết thúc báo cáo, hoặc để trống cả hai.');
@@ -623,37 +680,16 @@ async function handleApi(req, res, url) {
         const body = await readJson(req);
         const selectedWeek = monday(body.week_start || isoDate(new Date()));
         const firstWeek = addDays(selectedWeek, -35);
-        const positiveExamples = [DEFAULT_POSITIVE[1], DEFAULT_POSITIVE[5], DEFAULT_POSITIVE[7]];
-        const negativeExamples = [DEFAULT_NEGATIVE[0], DEFAULT_NEGATIVE[4]];
-        const demoRemarks = [];
-        for (let weekIndex = 0; weekIndex < 6; weekIndex++) {
-            const start = addDays(firstWeek, weekIndex * 7);
-            demoRemarks.push({
-                start,
-                remark: {
-                    week_start: start,
-                    positive: positiveExamples.slice(0, 2 + weekIndex % 2),
-                    negative: negativeExamples.slice(0, 1 + weekIndex % 2),
-                    pos_details: '[DỮ LIỆU GIẢ LẬP] Duy trì nền nếp, hoàn thành nội dung theo kế hoạch tuần.',
-                    neg_details: '[DỮ LIỆU GIẢ LẬP] Một số thời điểm cần nhắc nhở thêm về tác phong.',
-                    recommendations: '[DỮ LIỆU GIẢ LẬP] Tiếp tục duy trì nền nếp, tăng cường kiểm tra và khắc phục hạn chế.',
-                    collective: '',
-                    individual: '',
-                    draft: '[DỮ LIỆU GIẢ LẬP] Kết quả được tạo để thử nghiệm phần mềm, không dùng làm báo cáo thực tế.',
-                    generator: 'manual'
-                }
-            });
-        }
         const result = await mutate(next => {
             let imported = 0;
             let existing = 0;
             const activeCodes = next.criteria.filter(item => item.active).map(item => item.code);
-            const scoreProfiles = [932, 914, 897, 925, 906, 889, 918, 901];
-            const dayVariation = [-7, 3, 0, 8, -4, 6, -2];
             const unitCount = next.units.length;
 
             for (let weekIndex = 0; weekIndex < 6; weekIndex++) {
                 const weekStart = addDays(firstWeek, weekIndex * 7);
+                const unitTargets = next.units.map(() => randomBetween(875, 955));
+                const weekShift = randomBetween(-8, 8);
                 for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
                     const day = addDays(weekStart, dayIndex);
                     for (let unitIndex = 0; unitIndex < unitCount; unitIndex++) {
@@ -663,31 +699,37 @@ async function handleApi(req, res, url) {
                             continue;
                         }
 
-                        const variation = dayVariation[(dayIndex + unitIndex) % dayVariation.length];
-                        const baseline = scoreProfiles[unitIndex % scoreProfiles.length]
-                            + ((unitIndex * 13) % 11)
-                            + weekIndex * 2
-                            + variation;
-                        const bonus = (dayIndex + unitIndex + weekIndex) % 3 === 0 ? 2 : 0;
-                        const penalty = (dayIndex * 2 + unitIndex + weekIndex) % 5 === 0 ? 1 : 0;
+                        const baseline = unitTargets[unitIndex] + weekShift + randomBetween(-18, 18);
+                        const bonus = cryptoRandomInt(0, 100) < 55 ? randomBetween(1, 5) : 0;
+                        const penalty = cryptoRandomInt(0, 100) < 25 ? randomBetween(1, 4) : 0;
                         const components = {};
                         let mode = 'total';
                         if (activeCodes.length) {
                             mode = 'components';
-                            const share = Math.floor((baseline / activeCodes.length) * 100) / 100;
+                            const weights = activeCodes.map(() => randomBetween(70, 130));
+                            const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
                             let assigned = 0;
                             activeCodes.forEach((code, index) => {
                                 const value = index === activeCodes.length - 1
                                     ? Math.round((baseline - assigned) * 100) / 100
-                                    : share;
+                                    : Math.round((baseline * weights[index] / totalWeight) * 100) / 100;
                                 components[code] = value;
                                 assigned += value;
                             });
                         }
-                        const note = (dayIndex + unitIndex + weekIndex) % 3 === 0
-                            ? '[DỮ LIỆU GIẢ LẬP] Duy trì chế độ trực, vệ sinh khu vực và thực hiện nhiệm vụ đúng kế hoạch.'
-                            : (dayIndex + unitIndex + weekIndex) % 4 === 0
-                                ? '[DỮ LIỆU GIẢ LẬP] Cần nhắc nhở một số cá nhân bảo đảm tác phong đúng giờ.'
+                        const noteChance = cryptoRandomInt(0, 100);
+                        const note = noteChance < 35
+                            ? '[DỮ LIỆU GIẢ LẬP] ' + randomText([
+                                'Duy trì chế độ trực, vệ sinh khu vực và thực hiện nhiệm vụ đúng kế hoạch.',
+                                'Chấp hành nghiêm nền nếp trong ngày, phối hợp thực hiện nhiệm vụ tốt.',
+                                'Khu vực sinh hoạt được củng cố, bảo đảm gọn gàng và thống nhất.'
+                            ])
+                            : noteChance < 52
+                                ? '[DỮ LIỆU GIẢ LẬP] ' + randomText([
+                                    'Cần nhắc nhở một số cá nhân bảo đảm tác phong đúng giờ.',
+                                    'Một vài nội dung triển khai chưa đồng đều, cần tiếp tục chấn chỉnh.',
+                                    'Cần tăng cường kiểm tra việc duy trì nền nếp vào cuối ngày.'
+                                ])
                                 : '';
                         next.scores.push({
                             day,
@@ -706,9 +748,35 @@ async function handleApi(req, res, url) {
 
             next.scores.sort((a, b) => a.day.localeCompare(b.day) || a.unit_id - b.unit_id);
             let remarksImported = 0;
-            for (const { start, remark } of demoRemarks) {
+            for (let weekIndex = 0; weekIndex < 6; weekIndex++) {
+                const start = addDays(firstWeek, weekIndex * 7);
                 if (!next.remarks[start]) {
-                    next.remarks[start] = remark;
+                    const positive = randomItems(DEFAULT_POSITIVE, 2, 4);
+                    const negative = randomItems(DEFAULT_NEGATIVE, 1, 3);
+                    next.remarks[start] = {
+                        week_start: start,
+                        positive,
+                        negative,
+                        pos_details: '[DỮ LIỆU GIẢ LẬP] ' + randomText([
+                            'Các đơn vị duy trì nền nếp và cơ bản hoàn thành nội dung theo kế hoạch tuần.',
+                            'Tinh thần trách nhiệm được giữ vững; một số mặt công tác có chuyển biến tích cực.',
+                            'Cán bộ, chiến sĩ tích cực phối hợp, bảo đảm các nhiệm vụ thường xuyên.'
+                        ]),
+                        neg_details: '[DỮ LIỆU GIẢ LẬP] ' + randomText([
+                            'Một vài thời điểm việc duy trì tác phong chưa đồng đều, cần tiếp tục nhắc nhở.',
+                            'Công tác kiểm tra một số nội dung chưa thường xuyên.',
+                            'Một số hạn chế nhỏ cần được khắc phục dứt điểm trong tuần tiếp theo.'
+                        ]),
+                        recommendations: '[DỮ LIỆU GIẢ LẬP] ' + randomText([
+                            'Tiếp tục duy trì ưu điểm, phân công kiểm tra và khắc phục hạn chế trong tuần tới.',
+                            'Tăng cường nhắc nhở, kiểm tra nền nếp và đánh giá kết quả theo từng ngày.',
+                            'Phát huy tinh thần trách nhiệm, tập trung khắc phục các nội dung còn hạn chế.'
+                        ]),
+                        collective: '',
+                        individual: '',
+                        draft: `[DỮ LIỆU GIẢ LẬP] Ưu điểm: ${positive.join('; ')}. Hạn chế: ${negative.join('; ')}. Nội dung chỉ phục vụ thử nghiệm phần mềm, không dùng làm báo cáo thực tế.`,
+                        generator: 'manual'
+                    };
                     remarksImported++;
                 }
             }
@@ -730,12 +798,12 @@ async function handleApi(req, res, url) {
                 const start = monday(body.week_start);
                 const dailyNotes = store.scores
                     .filter(record => record.day >= start && record.day <= addDays(start, 6) && record.note)
-                    .map(record => `${record.day} · ${store.units.find(unit => unit.id === record.unit_id)?.name || 'Đơn vị'}: ${record.note}`)
+                    .map(record => `${formatDateVi(record.day)} · ${store.units.find(unit => unit.id === record.unit_id)?.name || 'Đơn vị'}: ${record.note}`)
                     .join('\n');
                 details = `\nDiễn biến thực tế được phép sử dụng:\n${textField(body.pos_details, 'Diễn biến ưu điểm', 5000)}\n${textField(body.neg_details, 'Diễn biến khuyết điểm', 5000)}\nGhi chú theo ngày:\n${dailyNotes}`;
             }
             const prompt = `Soạn dự thảo nhận xét thi đua bằng tiếng Việt, khách quan, chỉ dùng dữ kiện người dùng cung cấp; không tự bịa thông tin. Ghi rõ ưu điểm, hạn chế và kiến nghị nếu có.\nƯu điểm: ${(body.positive || []).map(value => textField(value, 'Từ khóa', 160)).join('; ')}\nHạn chế: ${(body.negative || []).map(value => textField(value, 'Từ khóa', 160)).join('; ')}${details}\nKiến nghị: ${textField(body.recommendations, 'Kiến nghị', 5000)}\nTập thể: ${textField(body.collective, 'Nhận xét tập thể', 5000)}\nCá nhân: ${textField(body.individual, 'Nhận xét cá nhân', 5000)}`;
-            const draft = await geminiGenerate(prompt, store.settings.gemini_model || 'gemini-2.5-flash');
+            const draft = await geminiGenerate(prompt, store.settings.gemini_model || DEFAULT_GEMINI_MODEL);
             return jsonResponse(res, 200, { draft, generator: 'gemini-online' });
         }
         return jsonResponse(res, 200, { draft: buildDraft(body), generator: 'template-rule' });
@@ -757,7 +825,7 @@ async function handleApi(req, res, url) {
     if (method === 'POST' && pathname === '/api/gemini/test') {
         const body = await readJson(req);
         if (body.confirm_online !== true) throw httpError(400, 'Cần xác nhận trước khi kết nối Gemini.');
-        const model = store.settings.gemini_model || 'gemini-2.5-flash';
+        const model = store.settings.gemini_model || DEFAULT_GEMINI_MODEL;
         await geminiGenerate('Chỉ trả lời: Kết nối thành công.', model);
         return jsonResponse(res, 200, { model, message: 'Dịch vụ Gemini đã phản hồi.' });
     }
@@ -838,6 +906,13 @@ async function main() {
     }
     if (!store || store.version !== 1 || !Array.isArray(store.units) || !Array.isArray(store.criteria) || !Array.isArray(store.scores)) {
         throw new Error(`Cấu trúc dữ liệu không hợp lệ tại ${DATA_FILE}. Hãy khôi phục từ bản sao lưu.`);
+    }
+    if (!store.settings || typeof store.settings !== 'object') {
+        store.settings = {};
+    }
+    if (!store.settings.gemini_model || ['gemini-2.5-flash', 'gemini-3.5-flash'].includes(store.settings.gemini_model)) {
+        store.settings.gemini_model = DEFAULT_GEMINI_MODEL;
+        await persist(store);
     }
     const server = http.createServer(requestHandler);
     server.listen(PORT, HOST, () => {

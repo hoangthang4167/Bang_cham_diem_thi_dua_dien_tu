@@ -3,7 +3,10 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "pdf:install": "cd pdf-chatbot && corepack yarn@1.22.22 install --frozen-lockfile",
+    "pdf:backend": "cd pdf-chatbot/backend && corepack yarn@1.22.22 langgraph:dev",
+    "pdf:frontend": "cd pdf-chatbot/frontend && corepack yarn@1.22.22 dev"
   },
   "engines": {
     "node": ">=20"

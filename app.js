@@ -693,7 +693,7 @@ function renderSettings() {
     $('periodEnd').value = s.period_end || '';
     renderUnitManager();
     renderCriteriaManager();
-    $('geminiModel').value = state.gemini?.model || 'gemini-3.5-flash';
+    $('geminiModel').value = state.gemini?.model || 'gemini-3.8-flash';
     $('geminiStatus').textContent = state.gemini?.preconfigured ? 'Đã cấu hình GEMINI_API_KEY trong môi trường dịch vụ.' : state.gemini?.configured ? 'Khóa chỉ được giữ trong bộ nhớ dịch vụ đến khi tắt ứng dụng.' : 'Chưa có API key. Chấm điểm và báo cáo vẫn hoạt động hoàn toàn Offline.';
     $('dataLocation').textContent = state.info.data_location;
     $('appVersion').textContent = state.info.version;
@@ -711,7 +711,7 @@ async function saveSettings(e) {
                 report_place: $('reportPlace').value,
                 period_start: $('periodStart').value,
                 period_end: $('periodEnd').value,
-                gemini_model: state.gemini?.model || 'gemini-3.5-flash'
+                gemini_model: state.gemini?.model || 'gemini-3.8-flash'
             }
         });
         renderDashboard();
@@ -953,7 +953,7 @@ function setupEvents() {
     $('authForm').addEventListener('submit', submitAuth);
 }
 async function loadDemoData(button) {
-    if (!confirm('Tạo dữ liệu GIẢ LẬP cho 6 tuần đến tuần đang chọn, gồm điểm theo mục tiêu, cộng/trừ và nhận xét? Chỉ thêm vào ngày/đơn vị còn trống; dữ liệu hiện có không bị ghi đè.'))
+    if (!confirm('Sinh ngẫu nhiên dữ liệu GIẢ LẬP cho 6 tuần đến tuần đang chọn, gồm điểm theo mục tiêu, cộng/trừ và nhận xét? Chỉ thêm vào ngày/đơn vị còn trống; dữ liệu hiện có không bị ghi đè.'))
         return;
     const buttons = [$('dashboardDemoBtn'), $('demoBtn')];
     buttons.forEach(item => item.disabled = true);

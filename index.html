@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi-VN">
 
 <head>
     <meta charset="UTF-8">
@@ -60,6 +60,10 @@
                 <button class="nav-item" data-view="remarks"><span class="nav-icon">✦</span><span>Gợi ý nhận xét
                         /
                         AI</span></button>
+                <a class="nav-item" href="http://localhost:3000" target="_blank" rel="noopener noreferrer"
+                    title="Mở chatbot hỏi đáp tài liệu PDF (cần khởi động dịch vụ PDF)">
+                    <span class="nav-icon">▧</span><span>Hỏi đáp tài liệu PDF</span>
+                </a>
                 <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Cài đặt hệ
                         thống</span></button>
             </nav>
@@ -99,6 +103,7 @@
                         <p id="page-subtitle">Theo dõi điểm số, đánh giá diễn biến và tổng hợp kết quả các đơn vị.</p>
                     </div>
                     <div class="global-controls"><label for="globalWeek">Tuần bắt đầu</label><input type="date"
+                            lang="vi-VN"
                             id="globalWeek" aria-label="Ngày bắt đầu tuần"><button class="btn btn-outline"
                             id="refreshBtn">Làm mới</button></div>
                 </div>
@@ -118,7 +123,7 @@
                             <span id="dashboardDemoProgress"></span>
                             <small>Dữ liệu giả lập được đánh dấu riêng và không ghi đè các lượt điểm đã có.</small>
                         </div>
-                        <button class="btn btn-primary" id="dashboardDemoBtn" type="button">Tạo dữ liệu giả lập để xem thống kê</button>
+                        <button class="btn btn-primary" id="dashboardDemoBtn" type="button">Tạo dữ liệu giả lập ngẫu nhiên</button>
                     </div>
                     <div class="kpi-grid" id="kpis">
                         <div class="kpi">
@@ -215,7 +220,7 @@
                                 </div>
                             </div>
                             <form id="entryForm" class="entry-form">
-                                <div class="form-row two"><label>Ngày chấm<input type="date" id="scoreDay"
+                                <div class="form-row two"><label>Ngày chấm<input type="date" lang="vi-VN" id="scoreDay"
                                             required=""></label><label>Đơn vị<select id="scoreUnit" required="">
                                             <option value="1">Trung đội 1</option>
                                             <option value="2">Trung đội 2</option>
@@ -617,7 +622,7 @@
                                 <h2 id="analysisChartTitle">So sánh 7 ngày trong tuần</h2>
                                 <p id="analysisChartSub">Số liệu theo đơn vị, tự động cập nhật</p>
                             </div><label class="month-control" id="monthControl" hidden="">Tháng báo cáo<input
-                                    id="selectedMonth" type="month"></label>
+                                    id="selectedMonth" type="month" lang="vi-VN"></label>
                         </div>
                         <div class="chart" id="analysisChart"></div>
                         <div class="legend" id="analysisLegend"></div>
@@ -769,8 +774,8 @@
                                 <label class="block">Địa điểm lập báo cáo<input id="reportPlace"
                                         placeholder="Thành phố Hồ Chí Minh"></label>
                                 <div class="form-row two"><label>Tổng hợp từ ngày (có thể đổi)<input id="periodStart"
-                                            type="date"></label><label>Đến ngày<input id="periodEnd"
-                                            type="date"></label>
+                                            type="date" lang="vi-VN"></label><label>Đến ngày<input id="periodEnd"
+                                            type="date" lang="vi-VN"></label>
                                 </div>
                                 <p class="fineprint">Để trống cả hai ô ngày để xuất báo cáo theo tuần đang chọn. Khi
                                     nhập
@@ -788,8 +793,8 @@
                                     chưa
                                     được phép.</p>
                                 <label class="block">Mô hình Gemini (chỉnh nếu tài khoản của bạn hỗ trợ tên khác)<input
-                                        id="geminiModel" value="gemini-3.5-flash"
-                                        placeholder="gemini-3.5-flash"></label>
+                                        id="geminiModel" value="gemini-3.8-flash"
+                                        placeholder="gemini-3.8-flash"></label>
                                 <label class="block">Khóa Gemini thay thế (không bắt buộc nếu đã tích hợp)<input
                                         id="geminiKey" type="password" autocomplete="new-password"
                                         placeholder="Chỉ dán khóa mới khi cần thay thế khóa cài sẵn"></label>
@@ -819,13 +824,13 @@
                             </div>
                             <div class="settings-actions"><button class="btn btn-outline" id="backupBtn">Tải bản sao lưu
                                     dữ
-                                    liệu</button><button class="btn btn-outline" id="demoBtn">Tạo dữ liệu giả lập 6 tuần
+                                    liệu</button><button class="btn btn-outline" id="demoBtn">Tạo dữ liệu giả lập ngẫu nhiên 6 tuần
                                 </button></div>
-                            <p class="fineprint">Dữ liệu giả lập được đánh dấu rõ trong ghi chú, tạo theo tuần đang
-                                chọn và không ghi đè điểm hoặc nhận xét đã có. Dùng trên bản sao dữ liệu nếu cần thử
-                                quản lý cấu hình. Nên sao lưu định kỳ ra thiết bị lưu trữ được phép sử dụng tại đơn vị.</p>
+                            <p class="fineprint">Điểm, cộng/trừ, ghi chú và nhận xét được sinh ngẫu nhiên mỗi lần tạo,
+                                có đánh dấu dữ liệu giả lập. Chỉ thêm vào ngày/đơn vị và tuần nhận xét còn trống; dữ liệu
+                                đã có không bị ghi đè. Nên sao lưu trước khi thử trên dữ liệu thật.</p>
                             <hr><label class="block">Thêm phiên hiệu đơn vị<input id="newUnit"
-                                    placeholder="Ví dụ: Trung đội 4/C104"></label><button class="btn btn-outline"
+                                    placeholder="Ví dụ: Trung đội 4"></label><button class="btn btn-outline"
                                 id="addUnit">Thêm đơn vị</button>
                             <hr>
                             <h3>Sửa phiên hiệu các đơn vị đang có</h3>
