@@ -7,8 +7,8 @@
 -- NẾU TRƯỚC ĐÓ ĐÃ CHẠY BẢN CŨ DÀNH CHO OPENAI (cột vector 1536 chiều):
 -- bỏ dấu "--" ở hai dòng dưới để xóa bảng cũ. Vector của OpenAI và Gemini không dùng chung được,
 -- nên TOÀN BỘ tài liệu đã nạp sẽ mất và phải tải lại PDF. Đổi mô hình embedding sau này cũng vậy.
- drop function if exists match_documents(vector, int, jsonb);
- drop table if exists documents;
+-- drop function if exists match_documents(vector, int, jsonb);
+-- drop table if exists documents;
 -- ---------------------------------------------------------------------------------------------
 
 -- 1. Bật phần mở rộng pgvector (kiểu dữ liệu vector).
@@ -21,6 +21,13 @@ create table if not exists documents (
   metadata jsonb,  -- thông tin kèm theo, ví dụ tên tệp (Document.metadata)
   embedding vector -- số chiều tùy mô hình embedding (Gemini: 3072)
 );
+
+-- Chỉ cấp quyền truy cập trực tiếp cho khóa máy chủ; RLS vẫn bật và không có policy cho client.
+grant usage on schema public to service_role;
+revoke all on table public.documents from anon, authenticated;
+grant select, insert, update, delete on table public.documents to service_role;
+revoke all on sequence public.documents_id_seq from public, anon, authenticated;
+grant usage, select on sequence public.documents_id_seq to service_role;
 
 -- 3. Hàm tìm các đoạn gần nghĩa nhất với câu hỏi.
 create or replace function match_documents (
@@ -51,6 +58,11 @@ begin
   limit match_count;
 end;
 $$;
+
+revoke all on function public.match_documents(vector, int, jsonb)
+  from public, anon, authenticated;
+grant execute on function public.match_documents(vector, int, jsonb)
+  to service_role;
 
 -- Lưu ý: cột không khai báo số chiều thì không tạo được chỉ mục (index) tăng tốc. Với một kho
 -- tài liệu nhỏ của một đơn vị (vài nghìn đoạn) việc quét tuần tự vẫn nhanh. Nếu sau này cần chỉ mục,

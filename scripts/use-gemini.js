@@ -85,7 +85,7 @@ const TARGETS = [
         edits: [{
             what: 'dòng OPENAI_API_KEY=',
             find: /^OPENAI_API_KEY=.*$/m,
-            to: '# Khóa Gemini API, tạo tại https://aistudio.google.com/apikey\nGOOGLE_API_KEY='
+            to: '# Khóa Gemini API, tạo tại https://aistudio.google.com/apikey\nGEMINI_API_KEY='
         }]
     }
 ];
@@ -126,15 +126,15 @@ function planFiles() {
     return { changes, notes, errors };
 }
 
-// Thêm dòng GOOGLE_API_KEY= (để trống) vào backend/.env nếu chưa có. Không đọc hay in giá trị nào trong tệp.
+// Thêm dòng GEMINI_API_KEY= (để trống) vào backend/.env nếu chưa có. Không đọc hay in giá trị nào trong tệp.
 function planEnv() {
     const abs = path.join(root, 'backend', '.env');
     if (!fs.existsSync(abs)) return null;
     const raw = fs.readFileSync(abs, 'utf8');
-    if (/^\s*GOOGLE_API_KEY\s*=/m.test(raw)) return { abs, append: null };
+    if (/^\s*GEMINI_API_KEY\s*=/m.test(raw)) return { abs, append: null };
     const eol = raw.includes('\r\n') ? '\r\n' : '\n';
     const lead = raw.length > 0 && !raw.endsWith('\n') ? eol : '';
-    return { abs, append: `${lead}# Khóa Gemini API, tạo tại https://aistudio.google.com/apikey${eol}GOOGLE_API_KEY=${eol}` };
+    return { abs, append: `${lead}# Khóa Gemini API, tạo tại https://aistudio.google.com/apikey${eol}GEMINI_API_KEY=${eol}` };
 }
 
 function needsInstall() {
@@ -175,7 +175,7 @@ const install = needsInstall() && !skipInstall;
 console.log(dryRun ? 'Chế độ chạy thử (--dry-run), không ghi gì:' : 'Chuyển chatbot PDF sang Gemini:');
 for (const change of changes) console.log(`  sửa  ${change.file}`);
 for (const note of notes) console.log(`  --   ${note}`);
-if (env) console.log(env.append ? '  sửa  backend/.env (thêm dòng GOOGLE_API_KEY= để trống)' : '  --   backend/.env: đã có GOOGLE_API_KEY');
+if (env) console.log(env.append ? '  sửa  backend/.env (thêm dòng GEMINI_API_KEY= để trống)' : '  --   backend/.env: đã có GEMINI_API_KEY');
 if (needsInstall()) console.log(skipInstall ? `  --   bỏ qua cài gói (--no-install). Tự chạy trong pdf-chatbot/backend: ${installCommand}` : `  cài  ${PACKAGE}@${PACKAGE_RANGE}`);
 else console.log(`  --   ${PACKAGE} đã có trong backend/package.json`);
 
@@ -197,7 +197,7 @@ for (const change of changes) fs.writeFileSync(change.abs, change.content);
 if (env && env.append) fs.appendFileSync(env.abs, env.append);
 
 console.log('\nXong. Các bước tiếp theo:');
-console.log('  1. Mở pdf-chatbot\\backend\\.env, dán khóa Gemini vào dòng GOOGLE_API_KEY= (tạo tại https://aistudio.google.com/apikey).');
+console.log('  1. Mở pdf-chatbot\\backend\\.env, dán khóa Gemini vào dòng GEMINI_API_KEY= (tạo tại https://aistudio.google.com/apikey).');
 console.log('     Dòng OPENAI_API_KEY không còn dùng nữa, có thể xóa.');
 console.log('  2. Supabase: chạy supabase/setup.sql trong SQL Editor (nếu trước đó đã tạo bảng cho OpenAI, làm theo ghi chú ở đầu tệp để xóa bảng cũ).');
 console.log('  3. Dừng và chạy lại: npm run pdf:backend  và  npm run pdf:frontend, rồi tải lại các tệp PDF.');

@@ -33,7 +33,7 @@ Mã nguồn của [ai-pdf-chatbot-langchain](https://github.com/mayooear/ai-pdf-
    if (-not (Test-Path pdf-chatbot\frontend\.env)) { Copy-Item pdf-chatbot\frontend\.env.example pdf-chatbot\frontend\.env }
    ```
 
-4. Điền `GOOGLE_API_KEY` (khóa Gemini), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` trong `pdf-chatbot\backend\.env`. Không đưa các khóa này vào Git hoặc chia sẻ qua chat. Đổi `LANGCHAIN_TRACING_V2=true` thành `false` trong cả hai tệp `.env` (mẫu `.env.example` bật sẵn tính năng gửi nhật ký hội thoại tới LangSmith trên Internet).
+4. Điền `GEMINI_API_KEY` (khóa Gemini), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` trong `pdf-chatbot\backend\.env`. Không đưa các khóa này vào Git hoặc chia sẻ qua chat. Đổi `LANGCHAIN_TRACING_V2=true` thành `false` trong cả hai tệp `.env` (mẫu `.env.example` bật sẵn tính năng gửi nhật ký hội thoại tới LangSmith trên Internet).
 
    **Bắt buộc** với `pdf-chatbot\frontend\.env`: dòng `LANGCHAIN_API_KEY=` phải có giá trị (không để trống), ví dụ `LANGCHAIN_API_KEY=local-dev`. Mã frontend gốc từ chối chạy khi biến này rỗng (lỗi `LANGCHAIN_API_KEY is not set`, mọi thao tác tải PDF và chat đều trả lỗi 500). Máy chủ LangGraph chạy cục bộ không kiểm tra giá trị này.
 5. Tạo bảng `documents`, hàm `match_documents` và bật vector extension trong Supabase: mở **SQL Editor** của project Supabase, dán nội dung tệp [`supabase/setup.sql`](supabase/setup.sql) rồi chạy (tệp theo [hướng dẫn SupabaseVectorStore của LangChain](https://js.langchain.com/docs/integrations/vectorstores/supabase/), có bật thêm RLS để chỉ khóa `SERVICE_ROLE` truy cập được). Nếu trước đó đã chạy bản SQL cũ dành cho OpenAI, làm theo ghi chú ở đầu tệp để xóa bảng cũ trước (vector của OpenAI và Gemini không dùng chung được nên phải tải lại PDF).
@@ -53,7 +53,7 @@ Mã chatbot gốc dùng OpenAI. Lệnh `npm run pdf:use-gemini` (tệp `scripts/
 
 - cài gói `@langchain/google-genai` (dòng 0.1.x, khớp với `@langchain/core` 0.3.40 mà `yarn.lock` của chatbot đang khóa) vào `pdf-chatbot/backend` và cập nhật `yarn.lock`, nên cần có mạng;
 - sửa `backend/src/shared/retrieval.ts` (embedding `gemini-embedding-001`), `backend/src/retrieval_graph/configuration.ts` và `frontend/constants/graphConfigs.ts` (mô hình trả lời `gemini-3.8-flash`), cùng tệp mẫu `.env.example`;
-- thêm dòng `GOOGLE_API_KEY=` để trống vào `backend/.env` nếu tệp này đã có.
+- thêm dòng `GEMINI_API_KEY=` để trống vào `backend/.env` nếu tệp này đã có.
 
 Script chạy lại nhiều lần vẫn an toàn và có thể xem trước bằng `npm run pdf:use-gemini -- --dry-run`. Nếu mã trong `pdf-chatbot` đã bị sửa khác bản gốc, script dừng lại, không ghi gì và liệt kê chỗ không khớp; khi đó hãy sửa tay các chỗ trên rồi chạy lại. Cài lại hoặc clone mới `pdf-chatbot` thì cũng chạy lại lệnh này.
 
@@ -67,8 +67,9 @@ Script chạy lại nhiều lần vẫn an toàn và có thể xem trước bằ
 | Chấm vàng, ô nhập câu hỏi bị khóa | Backend (cổng 2024) chưa chạy | Chạy `npm run pdf:backend`; khung sẽ tự tải lại khi backend sẵn sàng |
 | Tải PDF hoặc gửi câu hỏi báo lỗi 500, terminal frontend ghi `LANGCHAIN_API_KEY is not set` | `LANGCHAIN_API_KEY` trong `pdf-chatbot\frontend\.env` bị để trống | Điền một giá trị bất kỳ (ví dụ `local-dev`), khởi động lại `npm run pdf:frontend` |
 | Nạp PDF xong nhưng lỗi `Could not find the table 'public.documents'` hoặc `match_documents` | Chưa chạy SQL khởi tạo Supabase | Chạy `supabase/setup.sql` trong SQL Editor |
-| Lỗi `API key not valid`, 400, 403 hoặc 429 khi hỏi hoặc tải PDF | Sai khóa `GOOGLE_API_KEY`, khóa chưa dùng được Gemini API, hoặc vượt hạn mức miễn phí (429) | Kiểm tra khóa tại [AI Studio](https://aistudio.google.com/apikey), đợi hết hạn mức hoặc bật thanh toán, rồi khởi động lại backend |
-| Lỗi `Cannot find package '@langchain/google-genai'` hoặc `Please set an API key for Google GenerativeAI` | Chưa chạy `npm run pdf:use-gemini` hoặc chưa điền `GOOGLE_API_KEY` | Chạy lệnh đó, điền khóa vào `pdf-chatbot\backend\.env`, khởi động lại backend |
+| Chat hoặc tải PDF báo `42501 permission denied for table documents` | Khóa server chưa có quyền trên bảng hoặc sequence Supabase | Chạy lại `supabase/setup.sql` trong SQL Editor (script không xóa tài liệu), kiểm tra `SUPABASE_SERVICE_ROLE_KEY` thuộc đúng project Supabase rồi khởi động lại backend |
+| Lỗi `API key not valid`, 400, 403 hoặc 429 khi hỏi hoặc tải PDF | Sai khóa `GEMINI_API_KEY`, khóa chưa dùng được Gemini API, hoặc vượt hạn mức miễn phí (429) | Kiểm tra khóa tại [AI Studio](https://aistudio.google.com/apikey), đợi hết hạn mức hoặc bật thanh toán, rồi khởi động lại backend |
+| Lỗi `Cannot find package '@langchain/google-genai'` hoặc `Please set an API key for Google GenerativeAI` | Chưa chạy `npm run pdf:use-gemini` hoặc chưa điền `GEMINI_API_KEY` | Chạy lệnh đó, điền khóa vào `pdf-chatbot\backend\.env`, khởi động lại backend |
 | Lỗi `expected 1536 dimensions, not 3072` hoặc `different vector dimensions` | Bảng `documents` còn là bản cũ dành cho OpenAI | Xóa bảng cũ theo ghi chú ở đầu `supabase/setup.sql`, chạy lại tệp và tải lại PDF |
 | Khung chat trắng nhưng mở được ở tab mới | Trình duyệt chặn nhúng trang | Dùng nút "Mở trong tab mới" trong khung |
 | Thư mục `pdf-chatbot` rỗng sau khi tải/clone dự án | Thư mục đang là một repo Git lồng nhau nên GitHub không lưu nội dung | Xem mục "Lưu `pdf-chatbot` vào Git" bên dưới |
