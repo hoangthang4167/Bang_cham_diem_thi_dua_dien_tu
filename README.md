@@ -15,6 +15,12 @@
 
 Mã nguồn của [ai-pdf-chatbot-langchain](https://github.com/mayooear/ai-pdf-chatbot-langchain) được clone vào `pdf-chatbot/` và giữ nguyên giấy phép MIT. Repo upstream ghi rõ hiện không còn được duy trì. Dịch vụ PDF chạy riêng với ứng dụng chấm điểm. Sau khi đăng nhập, bấm **biểu tượng chat tròn ở góc phải dưới màn hình** (hoặc mục **Hỏi đáp tài liệu PDF** ở thanh điều hướng) để mở khung chat thu nhỏ ngay trong ứng dụng; trong khung có nút phóng to, tải lại và mở tab mới. Biểu tượng có chấm trạng thái (xanh: đủ dịch vụ, vàng: thiếu backend, đỏ: chưa chạy) và khung tự hướng dẫn khởi động khi dịch vụ chưa chạy. Cổng mặc định nằm ở đầu tệp `chat-widget.js` (`CONFIG`).
 
+### Ứng dụng Electron cho máy tính
+
+Sau khi cài dependencies và cấu hình các tệp `.env` theo hướng dẫn bên dưới, chạy `npm run desktop` để mở cửa sổ chatbot. Electron tự khởi động LangGraph ở cổng `2024`, Next.js ở cổng `3000`, đợi cả hai dịch vụ sẵn sàng rồi mới mở giao diện; khi đóng cửa sổ, các tiến trình con cũng được dừng.
+
+Tạo bộ cài Windows `.exe` bằng `npm run desktop:build`. File cài đặt nằm trong `dist/`; bộ cài chứa mã nguồn và dependencies cần thiết để chạy, không yêu cầu cài Node.js trên máy người dùng. Các khóa API không được đưa vào bộ cài. Lần mở đầu tiên, ứng dụng tạo `backend.env` và `frontend.env` trong thư mục cấu hình người dùng rồi hiển thị vị trí tệp; điền `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` trong `backend.env`, sau đó mở lại ứng dụng.
+
 ### Cấu hình lần đầu
 
 1. Tạo một dự án Supabase và một khóa Gemini API tại [Google AI Studio](https://aistudio.google.com/apikey) (một khóa dùng cho cả trả lời và embedding).

@@ -893,40 +893,107 @@ async function requestHandler(req, res) {
     }
 }
 
-async function main() {
+// async function main() {
+//     await fs.mkdir(DATA_DIR, { recursive: true });
+//     try {
+//         store = JSON.parse(await fs.readFile(DATA_FILE, 'utf8'));
+//     } catch (error) {
+//         if (error.code !== 'ENOENT') {
+//             throw new Error(`Không đọc được dữ liệu tại ${DATA_FILE}: ${error.message}`);
+//         }
+//         store = defaultStore();
+//         await persist(store);
+//     }
+//     if (!store || store.version !== 1 || !Array.isArray(store.units) || !Array.isArray(store.criteria) || !Array.isArray(store.scores)) {
+//         throw new Error(`Cấu trúc dữ liệu không hợp lệ tại ${DATA_FILE}. Hãy khôi phục từ bản sao lưu.`);
+//     }
+//     if (!store.settings || typeof store.settings !== 'object') {
+//         store.settings = {};
+//     }
+//     if (!store.settings.gemini_model || ['gemini-2.5-flash', 'gemini-3.5-flash'].includes(store.settings.gemini_model)) {
+//         store.settings.gemini_model = DEFAULT_GEMINI_MODEL;
+//         await persist(store);
+//     }
+//     const server = http.createServer(requestHandler);
+//     server.listen(PORT, HOST, () => {
+//         console.log(`Bảng chấm điểm thi đua đang chạy tại http://${HOST}:${PORT}`);
+//         console.log(`Dữ liệu cục bộ: ${DATA_FILE}`);
+//         console.log('Chỉ cho phép kết nối từ máy tính này.');
+//     });
+//     server.on('error', error => {
+//         console.error(`Không khởi động được dịch vụ: ${error.message}`);
+//         process.exitCode = 1;
+//     });
+// }
+
+// main().catch(error => {
+//     console.error(error.message);
+//     process.exitCode = 1;
+// });
+
+
+async function startServer() {
     await fs.mkdir(DATA_DIR, { recursive: true });
+
     try {
         store = JSON.parse(await fs.readFile(DATA_FILE, 'utf8'));
     } catch (error) {
         if (error.code !== 'ENOENT') {
             throw new Error(`Không đọc được dữ liệu tại ${DATA_FILE}: ${error.message}`);
         }
+
         store = defaultStore();
         await persist(store);
     }
-    if (!store || store.version !== 1 || !Array.isArray(store.units) || !Array.isArray(store.criteria) || !Array.isArray(store.scores)) {
+
+    if (!store || store.version !== 1 ||
+        !Array.isArray(store.units) ||
+        !Array.isArray(store.criteria) ||
+        !Array.isArray(store.scores)) {
         throw new Error(`Cấu trúc dữ liệu không hợp lệ tại ${DATA_FILE}. Hãy khôi phục từ bản sao lưu.`);
     }
+
     if (!store.settings || typeof store.settings !== 'object') {
         store.settings = {};
     }
-    if (!store.settings.gemini_model || ['gemini-2.5-flash', 'gemini-3.5-flash'].includes(store.settings.gemini_model)) {
+
+    if (!store.settings.gemini_model ||
+        ['gemini-2.5-flash', 'gemini-3.5-flash'].includes(store.settings.gemini_model)) {
         store.settings.gemini_model = DEFAULT_GEMINI_MODEL;
         await persist(store);
     }
+
     const server = http.createServer(requestHandler);
-    server.listen(PORT, HOST, () => {
-        console.log(`Bảng chấm điểm thi đua đang chạy tại http://${HOST}:${PORT}`);
-        console.log(`Dữ liệu cục bộ: ${DATA_FILE}`);
-        console.log('Chỉ cho phép kết nối từ máy tính này.');
+
+    await new Promise((resolve, reject) => {
+        const onError = error => reject(error);
+
+        server.once('error', onError);
+
+        server.listen(PORT, HOST, () => {
+            server.removeListener('error', onError);
+
+            console.log(`Bảng chấm điểm thi đua đang chạy tại http://${HOST}:${PORT}`);
+            console.log(`Dữ liệu cục bộ: ${DATA_FILE}`);
+            console.log('Chỉ cho phép kết nối từ máy tính này.');
+
+            resolve();
+        });
     });
+
     server.on('error', error => {
-        console.error(`Không khởi động được dịch vụ: ${error.message}`);
+        console.error('Lỗi máy chủ:', error.message);
+    });
+
+    return server;
+}
+
+module.exports = { startServer };
+
+// Cho phép tiếp tục chạy server.js độc lập bằng npm start
+if (require.main === module) {
+    startServer().catch(error => {
+        console.error(error.message);
         process.exitCode = 1;
     });
 }
-
-main().catch(error => {
-    console.error(error.message);
-    process.exitCode = 1;
-});

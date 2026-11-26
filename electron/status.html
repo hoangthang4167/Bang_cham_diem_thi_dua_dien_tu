@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+    <title>Chatbot hỏi đáp PDF</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f3f6fb;
+            --card: #ffffff;
+            --border: #dce3ee;
+            --text: #162032;
+            --muted: #55647a;
+            --primary: #1d4ed8;
+            --primary-hover: #1e40af;
+            --ok-bg: #e7f7ee;
+            --ok-text: #136c3e;
+            --warn-bg: #eef4ff;
+            --warn-text: #1d4ed8;
+            --err-bg: #fdecec;
+            --err-text: #b42318;
+            --idle-bg: #eef2f6;
+            --idle-text: #475467;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at top right, #e5eefc 0%, var(--bg) 52%);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 680px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+            padding: 28px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1.3;
+        }
+
+        .subtitle {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .services {
+            display: grid;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .service {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            background: #fafcff;
+        }
+
+        .service-info strong {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 3px;
+        }
+
+        .service-meta {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--idle-bg);
+            color: var(--idle-text);
+        }
+
+        .badge[data-state="starting"],
+        .badge[data-state="checking"] {
+            background: var(--warn-bg);
+            color: var(--warn-text);
+        }
+
+        .badge[data-state="ready"] {
+            background: var(--ok-bg);
+            color: var(--ok-text);
+        }
+
+        .badge[data-state="error"] {
+            background: var(--err-bg);
+            color: var(--err-text);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .badge[data-state="starting"] .dot,
+        .badge[data-state="checking"] .dot {
+            animation: pulse 1.1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(0.8); }
+        }
+
+        .error-box {
+            border: 1px solid #f5c2c0;
+            background: var(--err-bg);
+            color: #7a1c15;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 16px;
+        }
+
+        .error-box strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .error-hint {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #61211b;
+            word-break: break-word;
+        }
+
+        .logs {
+            margin-top: 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.45;
+            max-height: 180px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        button {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text);
+            border-radius: 9px;
+            padding: 9px 15px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #f4f7fb;
+        }
+
+        button.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        button.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .footer-note {
+            margin-top: 16px;
+            font-size: 12.5px;
+            color: var(--muted);
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <div class="header">
+            <div class="logo">PDF</div>
+            <div>
+                <h1>Chatbot hỏi đáp tài liệu PDF</h1>
+                <p class="subtitle" id="overallMessage">Đang khởi động các dịch vụ nền...</p>
+            </div>
+        </div>
+
+        <section class="services" aria-label="Trạng thái dịch vụ">
+            <div class="service">
+                <div class="service-info">
+                    <strong>Backend LangGraph (Cổng 2024)</strong>
+                    <span class="service-meta" id="backendDetail">Chuẩn bị kiểm tra cổng 2024</span>
+                </div>
+                <span class="badge" id="backendBadge" data-state="pending">
+                    <span class="dot"></span>
+                    <span id="backendStatusText">Đang chờ</span>
+                </span>
+            </div>
+
+            <div class="service">
+                <div class="service-info">
+                    <strong>Frontend Giao diện Chat (Cổng 3000)</strong>
+                    <span class="service-meta" id="frontendDetail">Chuẩn bị kiểm tra cổng 3000</span>
+                </div>
+                <span class="badge" id="frontendBadge" data-state="pending">
+                    <span class="dot"></span>
+                    <span id="frontendStatusText">Đang chờ</span>
+                </span>
+            </div>
+        </section>
+
+        <section class="error-box" id="errorBox" hidden>
+            <strong>Không thể khởi động Chatbot PDF</strong>
+            <div id="errorMessage"></div>
+            <div class="error-hint" id="configHint"></div>
+            <pre class="logs" id="errorLogs" hidden></pre>
+            <div class="actions">
+                <button type="button" class="primary" id="retryBtn">Thử khởi động lại</button>
+                <button type="button" id="openConfigBtn">Mở thư mục cấu hình</button>
+                <button type="button" id="quitBtn">Thoát</button>
+            </div>
+        </section>
+
+        <p class="footer-note">
+            Cửa sổ sẽ tự động mở giao diện chat khi cả Backend và Frontend vượt qua kiểm tra HTTP. Khi đóng ứng dụng, toàn bộ tiến trình nền sẽ tự động tắt.
+        </p>
+    </main>
+
+    <script>
+        const STATUS_LABELS = {
+            pending: 'Đang chờ',
+            starting: 'Đang khởi động',
+            checking: 'Kiểm tra HTTP',
+            ready: 'Sẵn sàng',
+            error: 'Lỗi'
+        };
+
+        const overallMessage = document.getElementById('overallMessage');
+        const backendBadge = document.getElementById('backendBadge');
+        const backendStatusText = document.getElementById('backendStatusText');
+        const backendDetail = document.getElementById('backendDetail');
+        const frontendBadge = document.getElementById('frontendBadge');
+        const frontendStatusText = document.getElementById('frontendStatusText');
+        const frontendDetail = document.getElementById('frontendDetail');
+        const errorBox = document.getElementById('errorBox');
+        const errorMessage = document.getElementById('errorMessage');
+        const configHint = document.getElementById('configHint');
+        const errorLogs = document.getElementById('errorLogs');
+
+        function renderService(badgeEl, textEl, detailEl, svc) {
+            if (!svc) return;
+            const state = svc.status || 'pending';
+            badgeEl.dataset.state = state;
+            textEl.textContent = STATUS_LABELS[state] || state;
+            detailEl.textContent = svc.detail || '';
+        }
+
+        function render(state) {
+            if (!state) return;
+            overallMessage.textContent = state.overallMessage || 'Đang khởi động...';
+            renderService(backendBadge, backendStatusText, backendDetail, state.backend);
+            renderService(frontendBadge, frontendStatusText, frontendDetail, state.frontend);
+
+            if (state.error) {
+                errorBox.hidden = false;
+                errorMessage.textContent = state.error;
+                configHint.textContent = state.configHint || '';
+                if (state.logs) {
+                    errorLogs.hidden = false;
+                    errorLogs.textContent = state.logs;
+                } else {
+                    errorLogs.hidden = true;
+                    errorLogs.textContent = '';
+                }
+            } else {
+                errorBox.hidden = true;
+            }
+        }
+
+        document.getElementById('retryBtn').addEventListener('click', () => {
+            window.desktopStatus?.retryStartup();
+        });
+        document.getElementById('openConfigBtn').addEventListener('click', () => {
+            window.desktopStatus?.openConfigDir();
+        });
+        document.getElementById('quitBtn').addEventListener('click', () => {
+            window.desktopStatus?.quitApp();
+        });
+
+        if (window.desktopStatus) {
+            window.desktopStatus.onStateChange(render);
+            window.desktopStatus.getState().then(render).catch(() => {});
+        }
+    </script>
+</body>
+</html>

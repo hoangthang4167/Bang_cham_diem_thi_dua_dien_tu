@@ -1,15 +1,63 @@
 {
   "name": "bang-cham-diem-thi-dua-dien-tu",
   "version": "1.1.0",
+  "description": "Bảng chấm điểm thi đua điện tử và Chatbot hỏi đáp PDF chạy trên desktop",
+  "author": "Thang Nguyen",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "start": "node server.js",
     "pdf:install": "cd pdf-chatbot && corepack yarn@1.22.22 install --frozen-lockfile",
-  "pdf:use-gemini": "node scripts/use-gemini.js",
+    "pdf:use-gemini": "node scripts/use-gemini.js",
     "pdf:backend": "cd pdf-chatbot/backend && corepack yarn@1.22.22 langgraph:dev",
-    "pdf:frontend": "cd pdf-chatbot/frontend && corepack yarn@1.22.22 dev"
+    "pdf:frontend": "cd pdf-chatbot/frontend && corepack yarn@1.22.22 dev",
+    "desktop": "node electron/launch.js",
+    "desktop:build": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "vn.thangnguyen.bangchamdiem",
+    "productName": "Chatbot hỏi đáp PDF",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**",
+      "logo_f9.png",
+      "server.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "pdf-chatbot",
+        "to": "pdf-chatbot",
+        "filter": [
+          "**/*",
+          "!**/.git/**",
+          "!**/.next/**",
+          "!**/.langgraph_api/**",
+          "!**/test_docs/**",
+          "!**/__tests__/**",
+          "!**/.env",
+          "!**/.env.local"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
   }
 }
