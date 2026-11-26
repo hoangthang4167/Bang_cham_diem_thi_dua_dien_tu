@@ -1,0 +1,401 @@
+/* Biểu tượng chat nổi – Hỏi đáp tài liệu PDF.
+   Mọi lớp CSS đều có tiền tố "pcw-" để không đụng giao diện chính. */
+
+.pcw {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    z-index: 900;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* ---------- Nút tròn ---------- */
+.pcw-fab {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    width: 58px;
+    height: 58px;
+    padding: 0;
+    border: 2px solid #f4be38;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #b91422, #930031);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 6px 18px rgba(147, 0, 49, .38), 0 2px 5px rgba(0, 0, 0, .18);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.pcw-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(147, 0, 49, .45), 0 3px 7px rgba(0, 0, 0, .2);
+}
+
+.pcw-fab:focus-visible,
+.pcw-btn:focus-visible,
+.pcw-action:focus-visible {
+    outline: 3px solid #f4be38;
+    outline-offset: 2px;
+}
+
+.pcw-fab svg {
+    display: block
+}
+
+.pcw-fab-label {
+    position: absolute;
+    right: 68px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #f4be38;
+    color: #173c30;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 7px 11px;
+    border-radius: 7px;
+    white-space: nowrap;
+    box-shadow: 0 3px 9px rgba(0, 0, 0, .18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+}
+
+.pcw-fab:hover .pcw-fab-label,
+.pcw-fab:focus-visible .pcw-fab-label {
+    opacity: 1
+}
+
+.pcw[data-open="true"] .pcw-fab-label {
+    display: none
+}
+
+/* Chấm trạng thái dịch vụ */
+.pcw-dot {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #9aa8a0;
+}
+
+.pcw-dot[data-state="ok"] {
+    background: #1fa463
+}
+
+.pcw-dot[data-state="warn"] {
+    background: #f0ad00
+}
+
+.pcw-dot[data-state="off"] {
+    background: #cf2332
+}
+
+/* ---------- Khung chat ---------- */
+.pcw-panel {
+    position: absolute;
+    right: 24px;
+    bottom: 96px;
+    width: 400px;
+    height: min(620px, calc(100vh - 124px));
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 2px solid #f4be38;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 18px 50px rgba(5, 40, 28, .32), 0 4px 12px rgba(0, 0, 0, .15);
+    animation: pcw-in .16s ease-out;
+    transform-origin: bottom right;
+}
+
+.pcw-panel.pcw-large {
+    width: min(780px, calc(100vw - 48px));
+    height: calc(100vh - 124px);
+}
+
+@keyframes pcw-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.97)
+    }
+
+    to {
+        opacity: 1;
+        transform: none
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .pcw-panel,
+    .pcw-fab {
+        animation: none;
+        transition: none
+    }
+}
+
+.pcw-head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 10px 10px 14px;
+    background: #930031;
+    color: #fff;
+    border-bottom: 3px solid #f4be38;
+}
+
+.pcw-title {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px
+}
+
+.pcw-title strong {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .2px
+}
+
+.pcw-sub {
+    font-size: 11px;
+    color: #ffe9b0;
+    display: flex;
+    align-items: center;
+    gap: 6px
+}
+
+.pcw-sub i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #9aa8a0
+}
+
+.pcw-sub[data-state="ok"] i {
+    background: #5be39b
+}
+
+.pcw-sub[data-state="warn"] i {
+    background: #ffcf4d
+}
+
+.pcw-sub[data-state="off"] i {
+    background: #ff7c86
+}
+
+.pcw-actions {
+    flex: none;
+    display: flex;
+    gap: 2px
+}
+
+.pcw-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #fff;
+    display: grid;
+    place-items: center;
+}
+
+.pcw-action:hover {
+    background: rgba(255, 255, 255, .18)
+}
+
+.pcw-action svg {
+    display: block
+}
+
+.pcw-warn {
+    flex: none;
+    padding: 9px 13px;
+    background: #fff4d6;
+    color: #7a4b00;
+    border-bottom: 1px solid #f1d475;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.pcw-warn code,
+.pcw-offline code {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 11.5px;
+    background: rgba(0, 0, 0, .07);
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.pcw-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: #f7faf8
+}
+
+.pcw-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff
+}
+
+.pcw-loading {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: #f7faf8;
+    color: #4d6b5d;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ---------- Màn hình "dịch vụ chưa chạy" ---------- */
+.pcw-offline {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    padding: 18px 18px 22px;
+    background: #f7faf8;
+    color: #173c30;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.pcw-offline-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #930031;
+    margin: 0 0 10px
+}
+
+.pcw-offline p {
+    margin: 0 0 10px
+}
+
+.pcw-svc {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    display: grid;
+    gap: 6px
+}
+
+.pcw-svc li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 11px;
+    background: #fff;
+    border: 1px solid #d3e5dd;
+    border-radius: 8px;
+    font-size: 12.5px
+}
+
+.pcw-svc b[data-ok="true"] {
+    color: #0a7a47
+}
+
+.pcw-svc b[data-ok="false"] {
+    color: #cf2332
+}
+
+.pcw-cmd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 8px 8px 8px 12px;
+    background: #0f2a20;
+    border-radius: 8px;
+}
+
+.pcw-cmd code {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    background: none;
+    padding: 0;
+    color: #e8f5ec;
+    font-size: 12.5px
+}
+
+.pcw-btn {
+    padding: 7px 12px;
+    border-radius: 7px;
+    border: 1px solid #bcd5c8;
+    background: #fff;
+    color: #08613f;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pcw-btn:hover {
+    background: #ecf9f1
+}
+
+.pcw-btn-primary {
+    background: #f4be38;
+    border-color: #f4be38;
+    color: #173c30
+}
+
+.pcw-btn-primary:hover {
+    background: #eab227
+}
+
+.pcw-offline-foot {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: #648272;
+    font-size: 11.5px
+}
+
+/* ---------- Màn hình nhỏ ---------- */
+@media (max-width: 540px) {
+    .pcw-fab {
+        right: 14px;
+        bottom: 14px
+    }
+
+    .pcw-fab-label {
+        display: none
+    }
+
+    .pcw-panel,
+    .pcw-panel.pcw-large {
+        right: 10px;
+        bottom: 84px;
+        width: calc(100vw - 20px);
+        height: calc(100vh - 104px)
+    }
+
+    .pcw-action[data-act="size"] {
+        display: none
+    }
+}
+
+@media print {
+    .pcw {
+        display: none !important
+    }
+}

@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "pdf:install": "cd pdf-chatbot && corepack yarn@1.22.22 install --frozen-lockfile",
+  "pdf:use-gemini": "node scripts/use-gemini.js",
     "pdf:backend": "cd pdf-chatbot/backend && corepack yarn@1.22.22 langgraph:dev",
     "pdf:frontend": "cd pdf-chatbot/frontend && corepack yarn@1.22.22 dev"
   },

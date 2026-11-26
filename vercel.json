@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "index.html app.js style.css chat-widget.js chat-widget.css logo_f9.png"
+    }
+  }
+}

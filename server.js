@@ -841,7 +841,7 @@ const MIME_TYPES = {
     '.svg': 'image/svg+xml',
     '.ico': 'image/x-icon'
 };
-const PUBLIC_FILES = new Set(['index.html', 'app.js', 'style.css', 'logo_f9.png']);
+const PUBLIC_FILES = new Set(['index.html', 'app.js', 'style.css', 'chat-widget.js', 'chat-widget.css', 'logo_f9.png']);
 
 async function serveStatic(req, res, url) {
     let pathname;

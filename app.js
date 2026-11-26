@@ -868,7 +868,8 @@ async function initUnits() {
     $('scoreUnit').innerHTML = state.units.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
 }
 function setupEvents() {
-    document.querySelectorAll('.nav-item').forEach(x => x.addEventListener('click', () => setView(x.dataset.view)));
+    // Chỉ các mục có data-view mới đổi màn hình; mục "Hỏi đáp tài liệu PDF" (liên kết ngoài) không được gọi setView.
+    document.querySelectorAll('.nav-item[data-view]').forEach(x => x.addEventListener('click', () => setView(x.dataset.view)));
     document.querySelectorAll('[data-go]').forEach(x => x.addEventListener('click', () => setView(x.dataset.go)));
     $('globalWeek').addEventListener('change', () => refresh().catch(e => msg(e.message, 'error')));
     $('refreshBtn').addEventListener('click', () => refresh().then( () => msg('Dữ liệu đã được cập nhật.')).catch(e => msg(e.message, 'error')));

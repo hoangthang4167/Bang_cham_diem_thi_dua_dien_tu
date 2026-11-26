@@ -1,0 +1,15 @@
+# Khóa API và mật khẩu: KHÔNG bao giờ đưa lên Git (repo này công khai)
+.env
+.env.*
+!.env.example
+
+# Thư viện và bản dựng (sinh lại bằng npm run pdf:install)
+node_modules/
+.next/
+.turbo/
+.langgraph_api/
+*.tsbuildinfo
+
+# Tệp tạm và dữ liệu cục bộ
+*.tmp
+.DS_Store
