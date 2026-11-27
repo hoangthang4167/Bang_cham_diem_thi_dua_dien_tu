@@ -34,6 +34,13 @@
     ],
     "extraResources": [
       {
+        "from": "desktop-config",
+        "to": "default-config",
+        "filter": [
+          "backend.env"
+        ]
+      },
+      {
         "from": "pdf-chatbot",
         "to": "pdf-chatbot",
         "filter": [
@@ -63,14 +70,17 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "logo_f9.png"
+      "icon": "logo_f9.png",
+      "executableName": "BangChamDiemThiDua"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowElevation": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "shortcutName": "Bảng chấm điểm thi đua điện tử",
+      "artifactName": "BangChamDiemThiDua-Setup-${version}.${ext}"
     }
   },
   "engines": {

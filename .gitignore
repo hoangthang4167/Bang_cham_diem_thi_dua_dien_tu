@@ -10,6 +10,13 @@ node_modules/
 .langgraph_api/
 *.tsbuildinfo
 
+# Bộ cài desktop và tệp bản vá
+dist/
+
+# Cấu hình có khóa thật để đóng vào bộ cài nội bộ: KHÔNG đưa lên Git
+desktop-config/
+*.patch
+
 # Tệp tạm và dữ liệu cục bộ
 *.tmp
 .DS_Store

@@ -79,11 +79,34 @@ function getConfigDirectory() {
     return app.isPackaged ? app.getPath('userData') : chatbotRoot;
 }
 
+const requiredBackendKeys = ['GEMINI_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+
+function getMissingBackendKeys(values) {
+    return requiredBackendKeys.filter(key => !values[key] || values[key].startsWith('your-'));
+}
+
+// Bộ cài phát hành nội bộ có thể kèm sẵn cấu hình (desktop-config/backend.env lúc build).
+// Chỉ chép khi máy chưa có cấu hình đủ khóa, không ghi đè cấu hình người dùng đã điền.
+function applyBundledBackendConfig(configPath) {
+    const bundledPath = path.join(process.resourcesPath, 'default-config', 'backend.env');
+    if (!fs.existsSync(bundledPath)) return;
+
+    if (fs.existsSync(configPath)) {
+        const dotenv = require(path.join(chatbotRoot, 'node_modules', 'dotenv'));
+        const current = dotenv.parse(fs.readFileSync(configPath));
+        if (getMissingBackendKeys(current).length === 0) return;
+    }
+
+    fs.copyFileSync(bundledPath, configPath);
+}
+
 function ensurePackagedConfigFiles() {
     if (!app.isPackaged) return;
 
     const configDirectory = app.getPath('userData');
     fs.mkdirSync(configDirectory, { recursive: true });
+
+    applyBundledBackendConfig(path.join(configDirectory, 'backend.env'));
 
     const configFiles = [
         ['backend', backendRoot],
@@ -147,8 +170,7 @@ function getServiceEnvironment(serviceRoot, serviceName) {
     }
 
     if (serviceName === 'backend') {
-        const required = ['GEMINI_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-        const missing = required.filter(key => !values[key] || values[key].startsWith('your-'));
+        const missing = getMissingBackendKeys(values);
 
         if (missing.length > 0) {
             throw new Error(
