@@ -12,11 +12,12 @@
     "pdf:backend": "cd pdf-chatbot/backend && corepack yarn@1.22.22 langgraph:dev",
     "pdf:frontend": "cd pdf-chatbot/frontend && corepack yarn@1.22.22 dev",
     "desktop": "node electron/launch.js",
+    "predesktop:build": "node scripts/check-desktop-build.js",
     "desktop:build": "electron-builder --win nsis"
   },
   "build": {
     "appId": "vn.thangnguyen.bangchamdiem",
-    "productName": "Chatbot hỏi đáp PDF",
+    "productName": "Bảng chấm điểm thi đua điện tử",
     "directories": {
       "output": "dist"
     },
@@ -24,6 +25,11 @@
       "electron/**",
       "logo_f9.png",
       "server.js",
+      "index.html",
+      "app.js",
+      "style.css",
+      "chat-widget.js",
+      "chat-widget.css",
       "package.json"
     ],
     "extraResources": [
@@ -38,12 +44,26 @@
           "!**/test_docs/**",
           "!**/__tests__/**",
           "!**/.env",
-          "!**/.env.local"
+          "!**/.env.*",
+          "**/.env.example"
+        ]
+      },
+      {
+        "from": "pdf-chatbot/node_modules",
+        "to": "pdf-chatbot/node_modules",
+        "filter": [
+          "**/*",
+          "!.cache/**",
+          "!backend",
+          "!backend/**",
+          "!frontend",
+          "!frontend/**"
         ]
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "logo_f9.png"
     },
     "nsis": {
       "oneClick": false,

@@ -20,19 +20,27 @@ const backendPort = 2024;
 const frontendPort = 3000;
 const backendHealthUrl = `http://127.0.0.1:${backendPort}/info`;
 const frontendUrl = `http://127.0.0.1:${frontendPort}`;
+// Bảng chấm điểm (server.js) chạy ngay trong tiến trình chính; server.js đọc cùng biến PORT.
+const appPort = Number(process.env.PORT || 4173);
+const appUrl = `http://127.0.0.1:${appPort}`;
+const productTitle = 'Bảng chấm điểm thi đua điện tử';
 const startupTimeoutMs = 120000;
 const maxLogLines = 80;
 
 let mainWindow = null;
+let chatWindow = null;
+let appServer = null;
 let backendProcess = null;
 let frontendProcess = null;
 let isQuitting = false;
-let chatLoaded = false;
+let chatReady = false;
 let activeStartupToken = 0;
 let stopPromise = null;
 
 const statusState = {
     overallMessage: 'Đang chuẩn bị khởi động...',
+    chatUrl: frontendUrl,
+    app: { status: 'pending', detail: `Cổng ${appPort} — Bảng chấm điểm` },
     backend: { status: 'pending', detail: `Cổng ${backendPort} — LangGraph` },
     frontend: { status: 'pending', detail: `Cổng ${frontendPort} — Giao diện Chat` },
     error: null,
@@ -53,10 +61,8 @@ app.on('second-instance', () => {
 
 function broadcastStatus() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
-    const currentUrl = mainWindow.webContents.getURL();
-    if (currentUrl.startsWith('file://')) {
-        mainWindow.webContents.send('status:update', statusState);
-    }
+    // Cả trang trạng thái lẫn khung chat trong ứng dụng đều nhận trạng thái.
+    mainWindow.webContents.send('status:update', statusState);
 }
 
 function updateStatus(patch) {
@@ -132,6 +138,14 @@ function getServiceEnvironment(serviceRoot, serviceName) {
     const dotenv = require(path.join(chatbotRoot, 'node_modules', 'dotenv'));
     const values = dotenv.parse(fs.readFileSync(envPath));
 
+    // Không bắt người dùng cuối cấu hình LangSmith: nếu chưa có khóa thật thì tắt tracing
+    // để nội dung hội thoại không bị gửi ra ngoài.
+    const langsmithKey = values.LANGCHAIN_API_KEY;
+    if (!langsmithKey || langsmithKey === 'local-dev' || langsmithKey.startsWith('your-')) {
+        values.LANGCHAIN_TRACING_V2 = 'false';
+        values.LANGSMITH_TRACING = 'false';
+    }
+
     if (serviceName === 'backend') {
         const required = ['GEMINI_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
         const missing = required.filter(key => !values[key] || values[key].startsWith('your-'));
@@ -144,8 +158,9 @@ function getServiceEnvironment(serviceRoot, serviceName) {
     }
 
     if (serviceName === 'frontend') {
+        // Frontend gốc yêu cầu biến này khác rỗng; LangGraph cục bộ không kiểm tra giá trị.
         if (!values.LANGCHAIN_API_KEY) {
-            throw new Error(`Hãy điền LANGCHAIN_API_KEY trong tệp cấu hình ${envPath}.`);
+            values.LANGCHAIN_API_KEY = 'local-dev';
         }
 
         if (!values.NEXT_PUBLIC_LANGGRAPH_API_URL || values.NEXT_PUBLIC_LANGGRAPH_API_URL === `http://localhost:${backendPort}`) {
@@ -210,11 +225,11 @@ function startNodeService(args, cwd, env, logBuffer, serviceName, serviceKey) {
     });
 
     child.on('exit', (code, signal) => {
-        if (isQuitting || !chatLoaded) return;
+        if (isQuitting || !chatReady) return;
         const activeChild = serviceKey === 'backend' ? backendProcess : frontendProcess;
         if (activeChild !== child) return;
 
-        chatLoaded = false;
+        chatReady = false;
         updateServiceStatus(serviceKey, 'error', `Dịch vụ đã dừng bất ngờ (mã ${code ?? signal ?? 'không rõ'})`);
         updateStatus({
             overallMessage: `${serviceName} đã dừng đột ngột.`,
@@ -222,10 +237,6 @@ function startNodeService(args, cwd, env, logBuffer, serviceName, serviceKey) {
             configHint: 'Bấm "Thử khởi động lại" để bật lại dịch vụ.',
             logs: logBuffer.slice(-25).join('\n')
         });
-
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.loadFile(statusPagePath);
-        }
     });
 
     return child;
@@ -246,7 +257,7 @@ function httpGetOk(url, timeoutMs = 15000) {
     });
 }
 
-async function waitForService(url, child, serviceName, serviceKey, logBuffer, token, timeout = startupTimeoutMs) {
+async function waitForService(url, child, serviceName, serviceKey, logBuffer, token, dependencies = [], timeout = startupTimeoutMs) {
     const startedAt = Date.now();
     updateServiceStatus(serviceKey, 'checking', `Đang kiểm tra HTTP (${url})`);
 
@@ -267,8 +278,23 @@ async function waitForService(url, child, serviceName, serviceKey, logBuffer, to
             );
         }
 
+        // Dịch vụ đã sẵn sàng trước đó mà dừng giữa chừng thì cũng coi là khởi động thất bại.
+        for (const dependency of dependencies) {
+            if (dependency.child.exitCode !== null || dependency.child.signalCode !== null) {
+                updateServiceStatus(dependency.key, 'error', 'Dịch vụ đã dừng bất ngờ');
+                throw new Error(
+                    `${dependency.name} đã dừng trong khi chờ ${serviceName}.\n` +
+                    logBuffer.slice(-10).join('\n')
+                );
+            }
+        }
+
         if (await httpGetOk(url)) {
-            return;
+            // Kiểm tra lại: dịch vụ phụ thuộc có thể dừng trong lúc đang chờ phản hồi HTTP.
+            if (dependencies.every(d => d.child.exitCode === null && d.child.signalCode === null)) {
+                return;
+            }
+            continue;
         }
 
         await new Promise(resolve => setTimeout(resolve, 800));
@@ -313,7 +339,7 @@ function stopServices() {
     const processes = [frontendProcess, backendProcess];
     frontendProcess = null;
     backendProcess = null;
-    chatLoaded = false;
+    chatReady = false;
 
     stopPromise = Promise.all(processes.map(stopProcess)).finally(() => {
         stopPromise = null;
@@ -401,28 +427,31 @@ async function startChatbot(token) {
             'Frontend chatbot',
             'frontend',
             logBuffer,
-            token
+            token,
+            [{ child: backendProcess, name: 'Backend chatbot', key: 'backend' }]
         );
         updateServiceStatus('frontend', 'ready', `Đang hoạt động tại 127.0.0.1:${frontendPort}`);
-        updateStatus({ overallMessage: 'Tất cả dịch vụ đã sẵn sàng. Đang mở giao diện chat...' });
+        updateStatus({ overallMessage: 'Dịch vụ chat đã sẵn sàng.' });
 
         if (isQuitting || token !== activeStartupToken) return;
 
-        chatLoaded = true;
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            await mainWindow.loadURL(frontendUrl);
-        }
+        chatReady = true;
+        updateStatus({ overallMessage: 'Chatbot PDF đã sẵn sàng.' });
     } catch (error) {
         if (isQuitting || token !== activeStartupToken) return;
 
         console.error('Lỗi khởi động chatbot:', error);
         await stopServices();
+        // Trong lúc chờ dừng, người dùng có thể đã bấm khởi động lại.
+        if (isQuitting || token !== activeStartupToken) return;
 
-        if (statusState.backend.status !== 'ready') {
-            updateServiceStatus('backend', 'error', 'Khởi động thất bại');
-        }
-        if (statusState.frontend.status !== 'ready' && statusState.frontend.status !== 'pending') {
-            updateServiceStatus('frontend', 'error', 'Khởi động thất bại');
+        for (const key of ['backend', 'frontend']) {
+            const { status } = statusState[key];
+            if (status === 'ready') {
+                updateServiceStatus(key, 'pending', 'Đã dừng');
+            } else if (key === 'backend' || status !== 'pending') {
+                updateServiceStatus(key, 'error', 'Khởi động thất bại');
+            }
         }
 
         const configHint = app.isPackaged
@@ -440,12 +469,70 @@ async function startChatbot(token) {
 
 async function restartChatbot() {
     const token = ++activeStartupToken;
-    chatLoaded = false;
+    chatReady = false;
+    updateStatus({ overallMessage: 'Đang khởi động lại Chatbot...', error: null, configHint: '', logs: '' });
+    updateServiceStatus('backend', 'pending', 'Đang dừng dịch vụ cũ');
+    updateServiceStatus('frontend', 'pending', 'Đang dừng dịch vụ cũ');
     await stopServices();
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.getURL().startsWith('file://')) {
-        await mainWindow.loadFile(statusPagePath);
-    }
+    if (isQuitting || token !== activeStartupToken) return;
     await startChatbot(token);
+}
+
+async function startScoringApp() {
+    updateServiceStatus('app', 'starting', `Đang mở bảng chấm điểm trên cổng ${appPort}`);
+    try {
+        const { startServer } = require('../server');
+        appServer = await startServer();
+    } catch (error) {
+        const message = error.code === 'EADDRINUSE'
+            ? `Cổng ${appPort} đang được sử dụng. Hãy đóng cửa sổ đang chạy "npm start" (hoặc phần mềm khác dùng cổng này) rồi thử lại.`
+            : error.message;
+        console.error('Lỗi mở bảng chấm điểm:', error);
+        updateServiceStatus('app', 'error', 'Khởi động thất bại');
+        updateStatus({ overallMessage: 'Không thể mở bảng chấm điểm.', error: message, configHint: '' });
+        return false;
+    }
+    updateServiceStatus('app', 'ready', `Đang hoạt động tại 127.0.0.1:${appPort}`);
+    return true;
+}
+
+function stopScoringApp() {
+    const server = appServer;
+    appServer = null;
+    if (!server) return Promise.resolve();
+    // Chờ yêu cầu đang xử lý (ví dụ đang lưu điểm) hoàn tất, tối đa 3 giây.
+    return new Promise(resolve => {
+        const timer = setTimeout(resolve, 3000);
+        server.close(() => {
+            clearTimeout(timer);
+            resolve();
+        });
+        server.closeIdleConnections();
+    });
+}
+
+// Mở giao diện chính trước, sau đó khởi động chatbot ở nền: thiếu khóa hay mất mạng
+// không làm gián đoạn việc chấm điểm.
+let bootPromise = null;
+
+function boot() {
+    if (bootPromise) return bootPromise;
+    bootPromise = (async () => {
+        updateStatus({ overallMessage: 'Đang mở bảng chấm điểm...', error: null, configHint: '' });
+        if (!appServer && !(await startScoringApp())) return;
+        if (isQuitting) return;
+        if (mainWindow && !mainWindow.isDestroyed()) await mainWindow.loadURL(appUrl);
+        restartChatbot().catch(reportUnexpectedError);
+    })().finally(() => {
+        bootPromise = null;
+    });
+    return bootPromise;
+}
+
+function reportUnexpectedError(error) {
+    if (isQuitting) return;
+    console.error('Lỗi không mong đợi:', error);
+    dialog.showErrorBox('Lỗi khởi động ứng dụng', error.message);
 }
 
 function buildAppMenu() {
@@ -455,7 +542,7 @@ function buildAppMenu() {
             submenu: [
                 {
                     label: 'Khởi động lại dịch vụ Chatbot',
-                    click: () => { restartChatbot(); }
+                    click: () => { retryStartup(); }
                 },
                 {
                     label: 'Mở thư mục cấu hình (.env)',
@@ -467,6 +554,18 @@ function buildAppMenu() {
                     accelerator: 'Alt+F4',
                     click: () => { app.quit(); }
                 }
+            ]
+        },
+        {
+            label: 'Sửa',
+            submenu: [
+                { label: 'Hoàn tác', role: 'undo' },
+                { label: 'Làm lại', role: 'redo' },
+                { type: 'separator' },
+                { label: 'Cắt', role: 'cut' },
+                { label: 'Sao chép', role: 'copy' },
+                { label: 'Dán', role: 'paste' },
+                { label: 'Chọn tất cả', role: 'selectAll' }
             ]
         },
         {
@@ -483,13 +582,58 @@ function buildAppMenu() {
                 { label: 'Phóng to', role: 'zoomIn' },
                 { label: 'Thu nhỏ', role: 'zoomOut' },
                 { label: 'Kích thước mặc định', role: 'resetZoom' },
-                { type: 'separator' },
-                { label: 'Công cụ nhà phát triển', role: 'toggleDevTools' }
+                // Bản cài đặt không mở công cụ nhà phát triển (có thể dùng để bỏ qua đăng nhập).
+                ...(app.isPackaged ? [] : [
+                    { type: 'separator' },
+                    { label: 'Công cụ nhà phát triển', role: 'toggleDevTools' }
+                ])
             ]
         }
     ];
 
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function openChatWindow() {
+    if (chatWindow && !chatWindow.isDestroyed()) {
+        chatWindow.focus();
+        return;
+    }
+    // Cửa sổ chat riêng không có preload, tức không gọi được lệnh điều khiển ứng dụng.
+    chatWindow = new BrowserWindow({
+        width: 1000,
+        height: 760,
+        title: 'Hỏi đáp tài liệu PDF',
+        autoHideMenuBar: true,
+        webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
+    });
+    chatWindow.on('closed', () => {
+        chatWindow = null;
+    });
+    chatWindow.webContents.setWindowOpenHandler(handleWindowOpen);
+    chatWindow.loadURL(frontendUrl);
+}
+
+function closeChatWindow() {
+    if (chatWindow && !chatWindow.isDestroyed()) chatWindow.close();
+}
+
+function getOrigin(url) {
+    try {
+        return new URL(url).origin;
+    } catch {
+        return '';
+    }
+}
+
+function handleWindowOpen({ url }) {
+    const origin = getOrigin(url);
+    if (origin === frontendUrl || origin === `http://localhost:${frontendPort}`) {
+        openChatWindow();
+    } else if (url.startsWith('http://') || url.startsWith('https://')) {
+        shell.openExternal(url);
+    }
+    return { action: 'deny' };
 }
 
 function createWindow() {
@@ -498,7 +642,7 @@ function createWindow() {
         height: 900,
         minWidth: 1000,
         minHeight: 680,
-        title: 'Chatbot hỏi đáp PDF',
+        title: productTitle,
         backgroundColor: '#f3f6fb',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -514,44 +658,56 @@ function createWindow() {
 
     mainWindow = new BrowserWindow(windowOptions);
 
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            shell.openExternal(url);
-        }
-        return { action: 'deny' };
+    mainWindow.webContents.setWindowOpenHandler(handleWindowOpen);
+
+    // Cửa sổ chính (có preload) chỉ được ở lại trong ứng dụng.
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        if (getOrigin(url) !== appUrl) event.preventDefault();
     });
 
     mainWindow.on('closed', () => {
         mainWindow = null;
+        closeChatWindow();
     });
 
     mainWindow.loadFile(statusPagePath);
 }
 
-function assertStatusCaller(event) {
+function retryStartup() {
+    const task = appServer ? restartChatbot() : boot();
+    task.catch(reportUnexpectedError);
+}
+
+// Chỉ trang trạng thái nội bộ và giao diện chính được gọi lệnh điều khiển.
+function assertAppCaller(event) {
     const senderUrl = event.senderFrame?.url || '';
-    if (!senderUrl.startsWith('file://')) {
+    if (!senderUrl.startsWith('file://') && getOrigin(senderUrl) !== appUrl) {
         throw new Error('Không có quyền truy cập kênh điều khiển nội bộ.');
     }
 }
 
 ipcMain.handle('status:get-state', event => {
-    assertStatusCaller(event);
+    assertAppCaller(event);
     return statusState;
 });
 
 ipcMain.handle('status:retry', event => {
-    assertStatusCaller(event);
-    restartChatbot();
+    assertAppCaller(event);
+    retryStartup();
 });
 
 ipcMain.handle('status:open-config-dir', event => {
-    assertStatusCaller(event);
+    assertAppCaller(event);
     return shell.openPath(getConfigDirectory());
 });
 
+ipcMain.handle('status:close-chat-window', event => {
+    assertAppCaller(event);
+    closeChatWindow();
+});
+
 ipcMain.handle('status:quit', event => {
-    assertStatusCaller(event);
+    assertAppCaller(event);
     app.quit();
 });
 
@@ -560,11 +716,7 @@ app.whenReady().then(() => {
 
     buildAppMenu();
     createWindow();
-    const token = ++activeStartupToken;
-    startChatbot(token).catch(error => {
-        console.error('Lỗi không mong đợi khi khởi động:', error);
-        dialog.showErrorBox('Lỗi khởi động Chatbot PDF', error.message);
-    });
+    boot().catch(reportUnexpectedError);
 });
 
 app.on('before-quit', event => {
@@ -573,7 +725,7 @@ app.on('before-quit', event => {
     event.preventDefault();
     isQuitting = true;
     activeStartupToken++;
-    stopServices().finally(() => app.quit());
+    Promise.all([stopServices(), stopScoringApp()]).finally(() => app.quit());
 });
 
 app.on('window-all-closed', () => {
@@ -583,9 +735,7 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (!mainWindow && !isQuitting) {
         createWindow();
-        if (chatLoaded) {
-            mainWindow.loadURL(frontendUrl);
-        }
+        if (appServer) mainWindow.loadURL(appUrl);
     }
 });
 

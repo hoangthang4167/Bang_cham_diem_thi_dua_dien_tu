@@ -17,9 +17,9 @@ Mã nguồn của [ai-pdf-chatbot-langchain](https://github.com/mayooear/ai-pdf-
 
 ### Ứng dụng Electron cho máy tính
 
-Sau khi cài dependencies và cấu hình các tệp `.env` theo hướng dẫn bên dưới, chạy `npm run desktop` để mở cửa sổ chatbot. Electron tự khởi động LangGraph ở cổng `2024`, Next.js ở cổng `3000`, đợi cả hai dịch vụ sẵn sàng rồi mới mở giao diện; khi đóng cửa sổ, các tiến trình con cũng được dừng.
+Sau khi cài dependencies và cấu hình các tệp `.env` theo hướng dẫn bên dưới, chạy `npm run desktop`. Electron mở bảng chấm điểm (cổng `4173`) ngay trong cửa sổ ứng dụng, đồng thời khởi động LangGraph (cổng `2024`) và Next.js (cổng `3000`) ở nền cho khung chat góc phải dưới. Chatbot chưa sẵn sàng hoặc thiếu khóa không ảnh hưởng việc chấm điểm; khung chat hiển thị trạng thái, nút **Thử khởi động lại** và **Mở thư mục cấu hình**. Khi đóng ứng dụng, các dịch vụ và tiến trình con được dừng. Không chạy `npm start` cùng lúc vì dùng chung cổng `4173`. Dữ liệu điểm dùng chung với bản web (xem mục "Dữ liệu và sao lưu"), còn tài khoản đăng nhập được tạo riêng trong ứng dụng desktop.
 
-Tạo bộ cài Windows `.exe` bằng `npm run desktop:build`. File cài đặt nằm trong `dist/`; bộ cài chứa mã nguồn và dependencies cần thiết để chạy, không yêu cầu cài Node.js trên máy người dùng. Các khóa API không được đưa vào bộ cài. Lần mở đầu tiên, ứng dụng tạo `backend.env` và `frontend.env` trong thư mục cấu hình người dùng rồi hiển thị vị trí tệp; điền `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` trong `backend.env`, sau đó mở lại ứng dụng.
+Tạo bộ cài Windows `.exe` bằng `npm run desktop:build`. File cài đặt nằm trong `dist/`; bộ cài chứa mã nguồn và dependencies cần thiết để chạy, không yêu cầu cài Node.js trên máy người dùng. Trước khi build, máy dùng để build phải có mã nguồn trong `pdf-chatbot/` và đã chạy `npm run pdf:install`, `npm run pdf:use-gemini`; lệnh build tự kiểm tra và dừng nếu thiếu. `LANGCHAIN_API_KEY` không bắt buộc với bản desktop: nếu để trống, ứng dụng tự dùng giá trị cục bộ và tắt gửi nhật ký tới LangSmith. Các khóa API không được đưa vào bộ cài. Lần mở đầu tiên, ứng dụng tạo `backend.env` và `frontend.env` trong thư mục cấu hình người dùng rồi hiển thị vị trí tệp; điền `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` trong `backend.env`, sau đó mở lại ứng dụng.
 
 ### Cấu hình lần đầu
 

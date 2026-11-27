@@ -15,6 +15,9 @@
         pingTimeoutMs: 2500,
         retryMs: 5000
     };
+    // Bản desktop (Electron): ứng dụng tự quản lý dịch vụ chat và báo trạng thái qua cầu nối này.
+    // Trên trình duyệt thường biến này không tồn tại và widget hoạt động như cũ.
+    const desktop = window.desktopChat || null;
     const SIZE_KEY = 'pdf_chat_widget_size_v1';
     const CMD_BACKEND = 'npm run pdf:backend';
     const CMD_FRONTEND = 'npm run pdf:frontend';
@@ -92,6 +95,62 @@
 
     const state = { open: false, front: null, back: null, frameBackOk: null, checking: false, retryTimer: 0 };
 
+    if (desktop) {
+        offline.innerHTML = `
+            <p class="pcw-offline-title" id="pcwDeskTitle">Chatbot đang khởi động…</p>
+            <ul class="pcw-svc">
+                <li><span>Giao diện chat</span><b id="pcwSvcFront" data-ok="false">đang chờ</b></li>
+                <li><span>Máy chủ LangGraph</span><b id="pcwSvcBack" data-ok="false">đang chờ</b></li>
+            </ul>
+            <p id="pcwDeskMessage"></p>
+            <p id="pcwDeskHint"></p>
+            <pre class="pcw-log" id="pcwDeskLog" hidden></pre>
+            <div class="pcw-offline-foot">
+                <button type="button" class="pcw-btn" data-act="config">Mở thư mục cấu hình</button>
+                <button type="button" class="pcw-btn pcw-btn-primary" data-act="restart">Thử khởi động lại</button>
+            </div>`;
+    }
+
+    // Trạng thái do tiến trình chính của bản desktop gửi sang.
+    function applyDesktopState(next) {
+        if (!next || !next.backend || !next.frontend) return;
+        const ready = next.backend.status === 'ready' && next.frontend.status === 'ready';
+        const failed = Boolean(next.error);
+        CONFIG.chatUrl = next.chatUrl || CONFIG.chatUrl;
+
+        const level = ready ? 'ok' : failed ? 'off' : 'warn';
+        dot.dataset.state = level;
+        status.dataset.state = level;
+        statusText.textContent = ready ? 'Chatbot sẵn sàng' : failed ? 'Chatbot gặp lỗi' : 'Đang khởi động…';
+
+        const labels = { pending: 'đang chờ', starting: 'đang khởi động', checking: 'đang kiểm tra', ready: 'sẵn sàng', error: 'lỗi' };
+        for (const [id, service] of [['pcwSvcFront', next.frontend], ['pcwSvcBack', next.backend]]) {
+            $(id).dataset.ok = String(service.status === 'ready');
+            $(id).textContent = labels[service.status] || service.status;
+        }
+        $('pcwDeskTitle').textContent = failed ? 'Chatbot chưa hoạt động được' : 'Chatbot đang khởi động…';
+        $('pcwDeskMessage').textContent = failed ? next.error.split('\n')[0] : (next.overallMessage || '');
+        $('pcwDeskHint').textContent = failed ? (next.configHint || '') : 'Bạn vẫn chấm điểm bình thường trong lúc chờ.';
+        $('pcwDeskLog').hidden = !(failed && next.logs);
+        $('pcwDeskLog').textContent = failed ? (next.logs || '') : '';
+        offline.querySelector('[data-act="restart"]').hidden = !failed;
+
+        // Chỉ nạp khung khi cả hai dịch vụ sẵn sàng; dịch vụ dừng thì bỏ khung cũ để lần sau nạp mới.
+        if (!ready && !frameIsEmpty()) frame.src = 'about:blank';
+        loading.hidden = true;
+        offline.hidden = ready;
+        frame.hidden = !ready;
+        if (ready && state.open && frameIsEmpty()) {
+            loading.hidden = false;
+            loading.textContent = 'Đang mở chatbot…';
+            frame.src = CONFIG.chatUrl;
+        }
+    }
+
+    function refreshDesktop() {
+        desktop.getState().then(applyDesktopState).catch(() => {});
+    }
+
     function readSize() {
         try {
             return localStorage.getItem(SIZE_KEY) === 'large';
@@ -127,6 +186,7 @@
     }
 
     function render() {
+        if (desktop) return;
         let level = 'unknown';
         let text = 'Chưa kiểm tra';
         if (state.front === true && state.back === true) {
@@ -180,6 +240,10 @@
     }
 
     async function check() {
+        if (desktop) {
+            refreshDesktop();
+            return;
+        }
         if (state.checking) return;
         state.checking = true;
         clearRetry();
@@ -230,6 +294,10 @@
         state.back = null;
         state.frameBackOk = null;
         render();
+        if (desktop) {
+            desktop.closeChatWindow();
+            refreshDesktop();
+        }
     }
 
     fab.addEventListener('click', () => (state.open ? close(false) : open()));
@@ -273,6 +341,12 @@
             case 'recheck':
                 check();
                 break;
+            case 'restart':
+                desktop?.retryStartup();
+                break;
+            case 'config':
+                desktop?.openConfigDir();
+                break;
         }
     });
 
@@ -294,6 +368,15 @@
             event.preventDefault();
             open();
         });
+    }
+
+    if (desktop) {
+        if (navLink) navLink.title = 'Mở khung chat nhanh';
+        const external = root.querySelector('[data-act="external"]');
+        external.title = 'Mở trong cửa sổ riêng';
+        external.setAttribute('aria-label', 'Mở chatbot trong cửa sổ riêng');
+        desktop.onStateChange(applyDesktopState);
+        refreshDesktop();
     }
 
     if (app && typeof MutationObserver === 'function') {

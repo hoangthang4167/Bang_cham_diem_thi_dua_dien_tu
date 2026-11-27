@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
-    <title>Chatbot hỏi đáp PDF</title>
+    <title>Bảng chấm điểm thi đua</title>
     <style>
         :root {
             color-scheme: light;
@@ -243,39 +243,28 @@
 <body>
     <main class="shell">
         <div class="header">
-            <div class="logo">PDF</div>
+            <div class="logo">TĐ</div>
             <div>
-                <h1>Chatbot hỏi đáp tài liệu PDF</h1>
-                <p class="subtitle" id="overallMessage">Đang khởi động các dịch vụ nền...</p>
+                <h1>Bảng chấm điểm thi đua điện tử</h1>
+                <p class="subtitle" id="overallMessage">Đang mở ứng dụng...</p>
             </div>
         </div>
 
         <section class="services" aria-label="Trạng thái dịch vụ">
             <div class="service">
                 <div class="service-info">
-                    <strong>Backend LangGraph (Cổng 2024)</strong>
-                    <span class="service-meta" id="backendDetail">Chuẩn bị kiểm tra cổng 2024</span>
+                    <strong>Bảng chấm điểm (Cổng 4173)</strong>
+                    <span class="service-meta" id="appDetail">Chuẩn bị khởi động</span>
                 </div>
-                <span class="badge" id="backendBadge" data-state="pending">
+                <span class="badge" id="appBadge" data-state="pending">
                     <span class="dot"></span>
-                    <span id="backendStatusText">Đang chờ</span>
-                </span>
-            </div>
-
-            <div class="service">
-                <div class="service-info">
-                    <strong>Frontend Giao diện Chat (Cổng 3000)</strong>
-                    <span class="service-meta" id="frontendDetail">Chuẩn bị kiểm tra cổng 3000</span>
-                </div>
-                <span class="badge" id="frontendBadge" data-state="pending">
-                    <span class="dot"></span>
-                    <span id="frontendStatusText">Đang chờ</span>
+                    <span id="appStatusText">Đang chờ</span>
                 </span>
             </div>
         </section>
 
         <section class="error-box" id="errorBox" hidden>
-            <strong>Không thể khởi động Chatbot PDF</strong>
+            <strong>Không thể mở ứng dụng</strong>
             <div id="errorMessage"></div>
             <div class="error-hint" id="configHint"></div>
             <pre class="logs" id="errorLogs" hidden></pre>
@@ -287,7 +276,7 @@
         </section>
 
         <p class="footer-note">
-            Cửa sổ sẽ tự động mở giao diện chat khi cả Backend và Frontend vượt qua kiểm tra HTTP. Khi đóng ứng dụng, toàn bộ tiến trình nền sẽ tự động tắt.
+            Giao diện chấm điểm mở trước; chatbot PDF tiếp tục khởi động ở nền. Khi đóng ứng dụng, toàn bộ tiến trình nền sẽ tự động tắt.
         </p>
     </main>
 
@@ -301,12 +290,9 @@
         };
 
         const overallMessage = document.getElementById('overallMessage');
-        const backendBadge = document.getElementById('backendBadge');
-        const backendStatusText = document.getElementById('backendStatusText');
-        const backendDetail = document.getElementById('backendDetail');
-        const frontendBadge = document.getElementById('frontendBadge');
-        const frontendStatusText = document.getElementById('frontendStatusText');
-        const frontendDetail = document.getElementById('frontendDetail');
+        const appBadge = document.getElementById('appBadge');
+        const appStatusText = document.getElementById('appStatusText');
+        const appDetail = document.getElementById('appDetail');
         const errorBox = document.getElementById('errorBox');
         const errorMessage = document.getElementById('errorMessage');
         const configHint = document.getElementById('configHint');
@@ -323,8 +309,7 @@
         function render(state) {
             if (!state) return;
             overallMessage.textContent = state.overallMessage || 'Đang khởi động...';
-            renderService(backendBadge, backendStatusText, backendDetail, state.backend);
-            renderService(frontendBadge, frontendStatusText, frontendDetail, state.frontend);
+            renderService(appBadge, appStatusText, appDetail, state.app);
 
             if (state.error) {
                 errorBox.hidden = false;

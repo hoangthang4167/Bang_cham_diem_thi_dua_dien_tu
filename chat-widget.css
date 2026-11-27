@@ -287,6 +287,23 @@
     margin: 0 0 10px
 }
 
+.pcw-log {
+    max-height: 140px;
+    overflow: auto;
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, .07);
+    font: 11px/1.5 Consolas, 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.pcw-log[hidden],
+.pcw-offline-foot [hidden] {
+    display: none
+}
+
 .pcw-svc {
     list-style: none;
     margin: 0 0 14px;
